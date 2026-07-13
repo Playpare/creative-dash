@@ -1,0 +1,1563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Creative Performance — Creative Analytics BI</title>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@500;600;700&family=Quicksand:wght@600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --font-body:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --font-display:'Space Grotesk','Inter',system-ui,sans-serif;
+  --font-mono:'JetBrains Mono','SF Mono',Consolas,'Liberation Mono',monospace;
+  --bg:#08090d;--sur:#0b0c0f;--sur2:#1c1f2e;--bor:rgba(255,255,255,.08);
+  --text:#dde1f5;--mut:#606888;
+  --acc:#4d9fff;--grn:#18c97a;--red:#f05252;--amb:#f5a623;--pur:#9b72f5;--teal:#00e5c3;
+}
+html,body{background:var(--bg);color:var(--text);min-height:100vh}
+body{font-family:var(--font-body);font-size:13px;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-feature-settings:'cv11','ss01'}
+.num,.kpi-v,.mini-v,.mkpi-v{font-family:var(--font-mono);font-feature-settings:'tnum','zero';letter-spacing:-.02em}
+
+/* ── ICONS ── */
+.icn{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;display:block}
+.icn-lg{width:18px;height:18px}
+.icn.spinning{animation:spin .85s linear infinite;transform-origin:center}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── SHELL / SIDEBAR ── */
+.app-shell{display:flex;min-height:100vh;background:var(--bg)}
+.sidebar{width:200px;background:#08090d;border-right:1px solid var(--bor);display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto}
+.sb-header{padding:18px 16px;border-bottom:0.5px solid var(--bor);display:flex;align-items:center;gap:10px}
+.sb-logo{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,#00E5C3 0%,#4D9FFF 100%);display:flex;align-items:center;justify-content:center;color:#001014;flex-shrink:0;box-shadow:0 4px 14px rgba(0,229,195,.28),inset 0 1px 0 rgba(255,255,255,.14)}
+.sb-logo svg{width:18px;height:18px;stroke:#001014;fill:none;stroke-width:2}
+.sb-title{font-family:'Quicksand',sans-serif;font-size:16px;font-weight:700;color:#fff;line-height:1.15}
+.sb-sub{font-size:10px;color:var(--mut);margin-top:2px}
+.sb-nav{flex:1;padding:14px 8px;overflow-y:auto}
+.sb-group{font-size:9px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.8px;padding:10px 10px 6px}
+.sb-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 12px;border-radius:7px;font-size:12px;color:var(--mut);cursor:pointer;transition:color .2s,background-color .2s;margin-bottom:2px;font-weight:500}
+.sb-item .sbi-l{display:flex;align-items:center;gap:10px}
+.sb-item:hover{background:var(--sur2);color:var(--text)}
+.sb-item.on{color:var(--acc);font-weight:600;background:rgba(91,110,245,.1)}
+.sb-item .cnt{font-family:var(--font-mono);font-size:10px;color:var(--mut);background:var(--sur2);padding:1px 7px;border-radius:20px}
+.sb-item.on .cnt{color:var(--acc);background:rgba(91,110,245,.18)}
+.sb-footer{border-top:0.5px solid var(--bor);padding:12px;font-size:10px;color:var(--mut);display:flex;flex-direction:column;gap:6px}
+.sb-footer .sdot{width:6px;height:6px;border-radius:50%;background:var(--grn);display:inline-block;margin-right:6px;animation:pulse 2s infinite}
+.sb-footer .sdot.err{background:var(--red);animation:none}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.sb-footer code{color:var(--mut);word-break:break-all}
+
+.main-area{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--bg)}
+.main-topbar{display:flex;align-items:center;gap:14px;padding:14px 22px;border-bottom:0.5px solid var(--bor);background:var(--sur);position:sticky;top:0;z-index:10;flex-wrap:wrap}
+.hamburger{display:none;background:transparent;border:none;color:var(--mut);cursor:pointer;padding:6px 10px;border-radius:6px}
+.page-title-wrap{flex:1;min-width:180px}
+.page-title{font-family:var(--font-display);font-size:17px;font-weight:600;color:var(--text);letter-spacing:-.01em;display:flex;align-items:center;gap:8px}
+.page-sub{font-size:11px;color:var(--mut);margin-top:2px}
+.main-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.inp,select.inp{background:var(--sur2);color:var(--text);border:0.5px solid var(--bor);border-radius:7px;padding:7px 11px;font-size:11px;font-family:inherit;outline:none;cursor:pointer}
+.inp::placeholder{color:var(--mut)}
+input.inp{cursor:text;min-width:190px}
+input.inp:focus,select.inp:focus{border-color:var(--acc)}
+.date-group{display:flex;gap:5px;align-items:center}
+.date-group.hidden{display:none}
+.btn{background:var(--sur2);color:var(--mut);border:0.5px solid var(--bor);border-radius:7px;padding:7px 13px;font-size:11px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-family:inherit;transition:all .15s}
+.btn:hover{color:var(--text);border-color:var(--acc)}
+.btn-acc{background:rgba(91,110,245,.12);color:var(--acc);border-color:rgba(91,110,245,.3)}
+.btn-acc:hover{background:rgba(91,110,245,.2);box-shadow:0 0 16px rgba(91,110,245,.25)}
+#syncBtn:disabled{opacity:.7;cursor:wait}
+
+.page-content{flex:1;padding:22px 28px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--bor) transparent}
+.page-content::-webkit-scrollbar{width:10px}
+.page-content::-webkit-scrollbar-thumb{background:var(--bor);border-radius:10px;border:2px solid var(--bg)}
+
+.banner{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:8px;margin-bottom:16px;font-size:11px}
+.banner.warn{background:rgba(245,166,35,.1);border:0.5px solid rgba(245,166,35,.3);color:var(--amb)}
+.banner.err{background:rgba(240,82,82,.08);border:0.5px solid rgba(240,82,82,.3);color:var(--red)}
+
+/* ── KPI ROW ── */
+.krow{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:14px}
+.kpi{background:var(--sur);border:0.5px solid var(--bor);border-radius:10px;padding:14px 16px;position:relative;overflow:hidden;transition:transform .15s ease,box-shadow .2s ease,border-color .2s ease}
+.kpi:hover{transform:translateY(-1px)}
+.kpi::after{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.kpi.blue::after{background:var(--acc)}.kpi.green::after{background:var(--grn)}.kpi.amber::after{background:var(--amb)}.kpi.purple::after{background:var(--pur)}.kpi.teal::after{background:var(--teal)}
+.kpi-l{font-size:9px;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px}
+.kpi-v{font-size:22px;font-weight:600;color:var(--text);line-height:1}
+
+/* ── CHART CARDS ── */
+.g2{display:grid;grid-template-columns:1fr 1.4fr;gap:12px;margin-bottom:14px}
+@media(max-width:900px){.g2{grid-template-columns:1fr}}
+.cc{background:var(--sur);border:0.5px solid var(--bor);border-radius:12px;padding:16px;min-height:270px;display:flex;flex-direction:column}
+.cc-t{font-size:12px;font-weight:600;color:var(--text);margin-bottom:2px}
+.cc-s{font-size:10px;color:var(--mut);margin-bottom:10px}
+.cc-canvas-wrap{flex:1;position:relative;min-height:200px}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;border-bottom:0.5px solid var(--bor);padding-bottom:12px}
+.tab{padding:6px 14px;border-radius:20px;font-size:11px;cursor:pointer;border:0.5px solid var(--bor);color:var(--mut);background:transparent;display:inline-flex;align-items:center;gap:7px;font-weight:500}
+.tab .dot{width:7px;height:7px;border-radius:50%}
+.tab[data-fmt="Video"] .dot{background:var(--pur)}
+.tab[data-fmt="Playable"] .dot{background:var(--teal)}
+.tab[data-fmt="Image"] .dot{background:var(--acc)}
+.tab .cnt{font-family:var(--font-mono);font-size:10px;color:var(--mut)}
+.tab.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+.tab.on .cnt{color:#fff}
+
+/* ── ASSET GRID / CARDS ── */
+.asset-grid{display:grid;grid-template-columns:repeat(auto-fill,260px);gap:14px;align-items:start;justify-content:start}
+.asset-table-wrap{background:var(--sur);border:0.5px solid var(--bor);border-radius:12px;overflow:auto}
+.asset-table{width:100%;border-collapse:collapse;min-width:900px}
+.asset-table th,.asset-table td{padding:10px 12px;border-bottom:0.5px solid var(--bor);text-align:left;vertical-align:middle}
+.asset-table th{font-size:9px;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;font-weight:700;background:rgba(255,255,255,.02);position:sticky;top:0}
+.asset-table td{font-size:11px;color:var(--text)}
+.asset-table tbody tr{cursor:pointer;transition:background-color .15s}
+.asset-table tbody tr:hover{background:var(--sur2)}
+.asset-table .asset-cell{max-width:300px}
+.asset-table .asset-cell strong{display:block;font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.asset-table .asset-cell span{display:block;margin-top:3px;font-family:var(--font-mono);font-size:9px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.asset-table .num{text-align:right;white-space:nowrap}
+.asset-card{width:260px;max-width:260px;background:var(--sur);border:0.5px solid var(--bor);border-radius:12px;overflow:hidden;cursor:pointer;transition:transform .15s ease,box-shadow .2s ease,border-color .2s ease;position:relative;animation:cardIn .3s cubic-bezier(.2,.8,.2,1) backwards}
+.asset-card:hover{transform:translateY(-2px);border-color:rgba(91,110,245,.35);box-shadow:0 10px 26px rgba(0,0,0,.4)}
+@keyframes cardIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.asset-rank{position:absolute;top:8px;left:8px;z-index:2;background:var(--acc);color:#fff;font-family:var(--font-mono);font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px}
+.asset-thumb{width:260px;height:146px;max-width:260px;max-height:146px;background:var(--sur2);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;border-bottom:0.5px solid var(--bor)}
+.asset-thumb img,.asset-thumb video,.asset-thumb iframe{width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;object-fit:contain;display:block;background:#05060a}
+
+/* ── Playable card thumb — blank, themed placeholder (no preview runs) ── */
+.asset-thumb.is-playable{background:var(--sur2)}
+.asset-thumb.is-playable::after{
+  content:'';
+  position:absolute;
+  inset:0;
+  background:
+    radial-gradient(120% 120% at 50% 0%, rgba(0,229,195,.05), transparent 60%),
+    var(--sur2);
+}
+.asset-thumb.has-custom-thumb::after{display:none}
+
+.asset-thumb-fallback{width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--mut)}
+.asset-thumb-fallback svg{width:34px;height:34px;stroke-width:1.4}
+.asset-thumb-fallback.fmt-Video{color:var(--pur);background:rgba(155,114,245,.08)}
+.asset-thumb-fallback.fmt-Playable{color:var(--teal);background:rgba(0,229,195,.08)}
+.asset-thumb-fallback.fmt-Image{color:var(--acc);background:rgba(77,159,255,.08)}
+.asset-badges{position:absolute;top:8px;right:8px;display:flex;gap:5px;z-index:3}
+.asset-badge{font-family:var(--font-mono);font-size:9px;font-weight:700;padding:3px 7px;border-radius:5px;letter-spacing:.04em;text-transform:uppercase;background:rgba(0,0,0,.55);color:#fff;backdrop-filter:blur(4px)}
+.asset-badge.fmt-Video{background:var(--pur)}
+.asset-badge.fmt-Playable{background:var(--teal);color:#001014}
+.asset-badge.fmt-Image{background:var(--acc)}
+.asset-body{padding:12px 14px 14px}
+.asset-name{font-size:12px;font-weight:600;color:var(--text);line-height:1.35;margin-bottom:10px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:32px}
+.asset-kpis{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;padding-top:10px;border-top:0.5px dashed var(--bor)}
+.mini-l{font-size:9px;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
+.mini-v{font-size:13px;font-weight:600;color:var(--text)}
+.mini-v.muted{color:var(--mut);font-weight:500}
+
+/* ── skeleton ── */
+.skeleton-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.sk-card{border-radius:12px;overflow:hidden;background:var(--sur);border:0.5px solid var(--bor)}
+.sk-thumb{aspect-ratio:16/9;background:linear-gradient(90deg,var(--sur2) 0%,var(--sur) 50%,var(--sur2) 100%);background-size:200% 100%;animation:shimmer 1.6s ease-in-out infinite}
+.sk-lines{padding:12px 14px}
+.sk-line{height:9px;border-radius:5px;background:linear-gradient(90deg,var(--sur2) 0%,var(--sur) 50%,var(--sur2) 100%);background-size:200% 100%;animation:shimmer 1.6s ease-in-out infinite;margin-bottom:8px}
+.sk-line.w60{width:60%}.sk-line.w40{width:40%}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+.empty{text-align:center;padding:60px 20px;color:var(--mut);background:var(--sur);border:0.5px solid var(--bor);border-radius:12px;font-size:12px}
+.empty h3{font-family:var(--font-display);font-size:16px;color:var(--text);margin-bottom:6px;font-weight:600}
+
+/* ── MODAL ── */
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:100;display:none;align-items:center;justify-content:center;padding:24px}
+.modal-backdrop.show{display:flex}
+.modal{background:var(--sur);border:0.5px solid var(--bor);border-radius:14px;max-width:960px;width:100%;height:min(720px,88vh);max-height:88vh;overflow:hidden;display:grid;grid-template-columns:1.3fr 1fr;grid-template-rows:minmax(0,1fr);box-shadow:0 24px 64px rgba(0,0,0,.5)}
+@media(max-width:800px){.modal{grid-template-columns:1fr;grid-template-rows:minmax(280px,55vh) minmax(0,1fr);height:88vh;overflow:hidden}}
+.modal-preview{background:#000;display:flex;align-items:center;justify-content:center;min-width:0;min-height:0;position:relative;overflow:hidden}
+.modal-preview img,.modal-preview video{width:100%;height:100%;max-width:100%;max-height:80vh;display:block;object-fit:contain;object-position:center;margin:auto}
+.modal-preview iframe{border:0;width:100%;aspect-ratio:16/9}
+.modal-preview .preview-action{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:24px}
+.modal-preview .ext-link{display:inline-flex;align-items:center;gap:7px;color:var(--teal);text-decoration:none;font-family:var(--font-display);font-size:13px;font-weight:600;padding:12px 22px;border:1px solid rgba(0,229,195,.4);border-radius:10px;background:rgba(0,229,195,.08);transition:background .15s,border-color .15s,transform .15s}
+.modal-preview .ext-link:hover{background:rgba(0,229,195,.16);border-color:var(--teal);transform:translateY(-1px)}
+.modal-close{position:absolute;top:10px;right:10px;background:var(--sur2);border:0.5px solid var(--bor);color:var(--text);width:30px;height:30px;border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;z-index:2}
+.modal-info{padding:22px;overflow-y:auto;display:flex;flex-direction:column;gap:18px}
+.modal-info h2{font-family:var(--font-display);font-weight:600;font-size:16px;line-height:1.3;color:var(--text)}
+.modal-id{font-family:var(--font-mono);font-size:10px;color:var(--mut);margin-top:4px}
+.modal-badges{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.modal-section h3{font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.7px;font-weight:700;margin-bottom:10px}
+.mkpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.mkpi-v{font-size:16px;font-weight:600;color:var(--text)}
+.pill{display:inline-block;font-family:var(--font-mono);font-size:10px;padding:3px 9px;background:var(--sur2);color:var(--text);border-radius:5px}
+.modal-info p{font-size:11px;color:var(--mut);line-height:1.6}
+
+/* ── LOGIN SCREEN ── */
+.login-backdrop{position:fixed;inset:0;z-index:500;background:radial-gradient(circle at 30% 20%,rgba(77,159,255,.16),transparent 34%),radial-gradient(circle at 70% 10%,rgba(0,229,195,.12),transparent 30%),rgba(8,9,13,.94);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;padding:24px}
+.login-backdrop.show{display:flex}
+.login-card{width:min(420px,100%);background:var(--sur);border:0.5px solid var(--bor);border-radius:18px;padding:28px;box-shadow:0 28px 80px rgba(0,0,0,.55)}
+.login-brand{display:flex;align-items:center;gap:12px;margin-bottom:22px}
+.login-brand .sb-logo{width:42px;height:42px}
+.login-title{font-family:var(--font-display);font-size:22px;font-weight:700;color:#fff;letter-spacing:-.02em}
+.login-sub{font-size:12px;color:var(--mut);margin-top:3px;line-height:1.5}
+.login-form{display:flex;flex-direction:column;gap:12px}
+.login-label{font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.7px;font-weight:700}
+.login-input{width:100%;background:var(--sur2);color:var(--text);border:0.5px solid var(--bor);border-radius:10px;padding:11px 13px;font-size:13px;font-family:inherit;outline:none}
+.login-input:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(77,159,255,.12)}
+.login-actions{display:flex;gap:10px;align-items:center;margin-top:8px}
+.login-btn{flex:1;justify-content:center;padding:11px 14px;border-radius:10px;font-weight:700}
+.login-note{font-size:11px;color:var(--mut);line-height:1.5;margin-top:14px}
+.login-error{display:none;margin-top:12px;background:rgba(240,82,82,.08);border:0.5px solid rgba(240,82,82,.3);color:var(--red);border-radius:9px;padding:9px 11px;font-size:11px}
+.login-error.show{display:block}
+.app-shell.auth-locked{filter:blur(3px);pointer-events:none;user-select:none}
+
+@media(max-width:860px){
+  .sidebar{position:fixed;left:0;top:0;bottom:0;z-index:200;transform:translateX(-100%);width:230px;box-shadow:0 4px 20px rgba(0,0,0,.4);transition:transform .2s ease}
+  .sidebar.open{transform:translateX(0)}
+  .hamburger{display:inline-flex}
+}
+</style>
+</head>
+<body>
+<div class="login-backdrop" id="loginBackdrop">
+  <div class="login-card">
+    <div class="login-brand">
+      <div class="sb-logo"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 8v8l7-4-7-4z"/></svg></div>
+      <div>
+        <div class="login-title">Dashboard Login</div>
+        <div class="login-sub">Use the email listed in the Authentication sheet.</div>
+      </div>
+    </div>
+    <form class="login-form" id="loginForm">
+      <div>
+        <label class="login-label" for="loginEmail">Email</label>
+        <input class="login-input" id="loginEmail" type="email" autocomplete="email" placeholder="name@company.com" required />
+      </div>
+      <div>
+        <label class="login-label" for="loginPassword">Password</label>
+        <input class="login-input" id="loginPassword" type="password" autocomplete="current-password" placeholder="Enter dashboard password" required />
+      </div>
+      <div class="login-actions">
+        <button class="btn btn-acc login-btn" type="submit">Login</button>
+      </div>
+      <div class="login-error" id="loginError"></div>
+      <div class="login-note">Access is checked by Apps Script using the <code>Authentication</code> sheet. Admins can sync; viewers can only view.</div>
+    </form>
+  </div>
+</div>
+
+<div class="app-shell auth-locked" id="appShell">
+  <aside class="sidebar" id="sidebar">
+    <div class="sb-header">
+      <div class="sb-logo"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 8v8l7-4-7-4z"/></svg></div>
+      <div>
+        <div class="sb-title">Creative Analytics</div>
+        <div class="sb-sub" id="sbGame">Loading…</div>
+      </div>
+    </div>
+    <nav class="sb-nav">
+      <div class="sb-group">Assets</div>
+      <div class="sb-item on" data-fmt="all"><span class="sbi-l"><svg class="icn" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>All Assets</span><span class="cnt" id="nav-count-all">0</span></div>
+      <div class="sb-item" data-fmt="Video"><span class="sbi-l"><svg class="icn" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>Videos</span><span class="cnt" id="nav-count-Video">0</span></div>
+      <div class="sb-item" data-fmt="Playable"><span class="sbi-l"><svg class="icn" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="1"/><path d="M9 12h6M12 9v6"/></svg>Playables</span><span class="cnt" id="nav-count-Playable">0</span></div>
+      <div class="sb-item" data-fmt="Image"><span class="sbi-l"><svg class="icn" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>Images</span><span class="cnt" id="nav-count-Image">0</span></div>
+    </nav>
+    <div class="sb-footer">
+      <div><span class="sdot" id="sbDot"></span><span id="sbStatus">Loading…</span></div>
+      <div id="sbRefreshed">—</div>
+    </div>
+  </aside>
+
+  <div class="main-area">
+    <div class="main-topbar">
+      <button class="hamburger" id="hamburgerBtn"><svg class="icn-lg" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+      <div class="page-title-wrap">
+        <div class="page-title">Creative Performance</div>
+        <div class="page-sub" id="pageSub">Loading dashboard…</div>
+      </div>
+      <div class="main-actions">
+        <input id="search" class="inp" placeholder="Search creatives, campaigns…" />
+        <select id="network" class="inp">
+          <option value="all">All networks</option>
+          <option value="AppLovin">AppLovin</option>
+          <option value="Google Ads">Google Ads</option>
+        </select>
+        <select id="sort" class="inp">
+          <option value="spend">Sort by Spend</option>
+          <option value="installs">Sort by Installs</option>
+          <option value="ipm">Sort by IPM</option>
+          <option value="cpi-asc">Sort by CPI (low→high)</option>
+          <option value="ctr">Sort by CTR</option>
+        </select>
+        <select id="dateRange" class="inp">
+          <option value="today">Today</option>
+          <option value="single">Single date</option>
+          <option value="all" selected>All sheet rows</option>
+          <option value="1">Yesterday</option>
+          <option value="7">Last 7 days</option>
+          <option value="14">Last 14 days</option>
+          <option value="30">Last 30 days</option>
+          <option value="last_month">Last month</option>
+          <option value="this_month">This month</option>
+          <option value="custom">Custom range</option>
+        </select>
+        <span id="singleDateWrap" class="date-group hidden">
+          <input type="date" id="singleDate" class="inp" required />
+          <button type="button" id="singleDateConfirm" class="btn btn-acc">Confirm</button>
+        </span>
+        <span id="customDates" class="date-group hidden">
+          <input type="date" id="customStart" class="inp" />
+          <span style="color:var(--mut);font-size:10px">→</span>
+          <input type="date" id="customEnd" class="inp" />
+        </span>
+        <button class="btn btn-acc" id="syncBtn"><svg class="icn" id="syncIcn" viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>Sync Now</button>
+      </div>
+    </div>
+
+    <div class="page-content">
+      <div id="banners"></div>
+      <div class="krow" id="kpis"></div>
+      <div class="g2">
+        <div class="cc"><div class="cc-t">Format Distribution</div><div class="cc-s">Creative count by format, not spend share</div><div class="cc-canvas-wrap"><canvas id="chart-format"></canvas></div></div>
+        <div class="cc"><div class="cc-t">Leaderboard</div><div class="cc-s">Top 10 creatives by spend</div><div class="cc-canvas-wrap"><canvas id="chart-top10"></canvas></div></div>
+      </div>
+      <div class="tabs" id="tabs">
+        <div class="tab on" data-fmt="all">All<span class="cnt" id="count-all">0</span></div>
+        <div class="tab" data-fmt="Video"><span class="dot"></span>Videos<span class="cnt" id="count-Video">0</span></div>
+        <div class="tab" data-fmt="Playable"><span class="dot"></span>Playables<span class="cnt" id="count-Playable">0</span></div>
+        <div class="tab" data-fmt="Image"><span class="dot"></span>Images<span class="cnt" id="count-Image">0</span></div>
+      </div>
+      <div id="content">
+        <div class="skeleton-grid" id="skeleton"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="modal-backdrop" class="modal-backdrop">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modal-preview" id="modal-preview"><button class="modal-close" id="modal-close">✕</button></div>
+    <div class="modal-info" id="modal-info"></div>
+  </div>
+</div>
+
+<script>
+/* ============================================================================
+ * CONFIG - API_URL is loaded from .env by loadEnvConfig().
+ * ========================================================================== */
+const CONFIG = {
+  API_URL: 'https://script.google.com/macros/s/AKfycbz37HtcPPpEnKwuTfjgkVNkIvMZjWy6tAQDzYaufCNbbobmIJwzVlj37FNfoWmA7dtT/exec',
+  SHEET: 'applovin_data',
+  GOOGLE_SHEET: 'google_ads_data',
+  CACHE_KEY: 'creativeDashCache_v10_applovin_data',
+  // doGet now only ever reads the small, pre-aggregated Asset_Wise_Data /
+  // Asset_Wise_Daily tabs (see Code.gs), so a slow response almost always
+  // means a real network/deployment problem, not a heavy sheet scan.
+  // Keep this modest and retry once instead of one long hung wait.
+  FETCH_TIMEOUT_MS: 360000,
+  FETCH_RETRIES: 1,
+  AUTO_REFRESH_MS: 24 * 60 * 60 * 1000,
+};
+
+const FORMATS = ['Video','Playable','Image'];
+// Resolves beside index.html locally and inside a GitHub Pages repository path.
+const PLAYABLE_THUMB_IMG = new URL('./Thumbnail.png', document.baseURI).href;
+const COLOR = { Video:'#9b72f5', Playable:'#00e5c3', Image:'#4d9fff', accent:'#4d9fff', ink3:'#606888', hairline:'rgba(255,255,255,.08)' };
+
+let CREATIVES = [];     // processed, deduped, attributed per-asset daily records
+let META = { game:'', refreshedAt:'' };
+let activeFormat = 'all';
+let appliedDatePreset = 'all';
+let appliedSingleDate = '';
+let _isFetching = false;
+let _reqSeq = 0;
+let _emptyTimer = null;
+let chartFormat = null, chartTop10 = null;
+let DASHBOARD_AUTH = { email: '', password: '' };
+
+// Secure session token (issued by Apps Script doPost 'login'). Held in memory
+// + sessionStorage so it survives reloads within the tab session. The token —
+// not a password or API key — is what every data request carries.
+let SESSION_TOKEN = '';
+try { SESSION_TOKEN = sessionStorage.getItem('dashSessionToken') || ''; } catch(e) {}
+
+// POST login → receive + store a session token.
+// text/plain content-type keeps it a "simple" request (no CORS preflight,
+// which Apps Script web apps cannot answer).
+async function apiLogin(email, password){
+  const res = await fetch(CONFIG.API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ action: 'login', email: email, password: password })
+  });
+  const data = await res.json();
+  if (data.error || !data.token) throw new Error(data.error || 'Login failed');
+  SESSION_TOKEN = data.token;
+  try { sessionStorage.setItem('dashSessionToken', data.token); } catch(e) {}
+  return data; // { token, role, email }
+}
+
+async function loadEnvConfig(){
+  try {
+    const response = await fetch('.env', { cache: 'no-store' });
+    if (!response.ok) return;
+
+    const text = await response.text();
+    text.split(/\r?\n/).forEach(line => {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) return;
+
+      const equalsAt = trimmed.indexOf('=');
+      if (equalsAt === -1) return;
+
+      const key = trimmed.slice(0, equalsAt).trim();
+      let value = trimmed.slice(equalsAt + 1).trim();
+      if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+        value = value.slice(1, -1);
+      }
+
+      if (key === 'API_URL') CONFIG[key] = value;
+    });
+  } catch (e) {
+    // Browsers block fetch('.env') when this HTML is opened directly as file://.
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Helpers
+ * ------------------------------------------------------------------------- */
+function num(v){
+  if (typeof v === 'string') v = v.replace(/[$,%\s]/g,'');
+  const n = Number(v);
+  return isFinite(n) ? n : 0;
+}
+function str(v){ return String(v == null ? '' : v).trim(); }
+function ymd(d){
+  const m=String(d.getMonth()+1).padStart(2,'0');
+  const day=String(d.getDate()).padStart(2,'0');
+  return d.getFullYear()+'-'+m+'-'+day;
+}
+function addDaysToYmd(value, days){
+  if (!value) return '';
+  const parts = value.split('-').map(Number);
+  if (parts.length !== 3 || parts.some(Number.isNaN)) return value;
+  const d = new Date(parts[0], parts[1] - 1, parts[2]);
+  d.setDate(d.getDate() + days);
+  return ymd(d);
+}
+function ymdCell(v){
+  if (v instanceof Date) return ymd(v);
+  const s = str(v);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})[T ]/);
+  if (iso) return iso[1] + '-' + iso[2] + '-' + iso[3];
+  const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (m) {
+    const a = Number(m[1]);
+    const b = Number(m[2]);
+    const month = a > 12 ? b : a;
+    const day = a > 12 ? a : b;
+    return m[3]+'-'+String(month).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+  }
+  return s;
+}
+function apiRangeForFetch(range){
+  return {
+    startDate: range.startDate ? addDaysToYmd(range.startDate, -1) : '',
+    endDate: range.endDate ? addDaysToYmd(range.endDate, 1) : '',
+  };
+}
+function escapeHtml(s){
+  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function shortNum(n){
+  n = Math.round(n||0);
+  if (Math.abs(n) >= 1e6) return (n/1e6).toFixed(1).replace(/\.0$/,'')+'M';
+  if (Math.abs(n) >= 1e3) return (n/1e3).toFixed(1).replace(/\.0$/,'')+'K';
+  return n.toLocaleString();
+}
+function truncate(s,n){ s=str(s); return s.length>n ? s.slice(0,n-1)+'…' : s; }
+function readField(row, name){
+  if (!row) return '';
+  if (row[name] !== undefined) return row[name];
+  const target = name.toLowerCase();
+  const key = Object.keys(row).find(k => String(k).toLowerCase() === target);
+  return key ? row[key] : '';
+}
+
+/* ---------------------------------------------------------------------------
+ * DATA PIPELINE
+ * Both Asset_Wise_Data (all-time-retained totals) and Asset_Wise_Daily
+ * (date-filtered, via startDate/endDate query params) are already
+ * pre-aggregated server-side in Code.gs — one row per unique asset, with
+ * installs/revenue/sales/ROAS correctly attributed from AppLovin's set-level
+ * data. The client just needs to parse that one shared row shape; no
+ * client-side attribution or de-dup math needed anymore.
+ * ------------------------------------------------------------------------- */
+function rate(v){
+  const raw = str(v);
+  const n = num(v);
+  if (!n) return 0;
+  return raw.indexOf('%') !== -1 || n > 1 ? n / 100 : n;
+}
+
+function cleanUrl(value){
+  const url = str(value);
+  if (!url) return '';
+  if (url.startsWith('//')) return 'https:' + url;
+  return url;
+}
+
+function isVideoUrl(url){
+  const u = str(url).toLowerCase();
+  return /\.(mp4|webm|mov|m4v|m3u8)(?:$|[?#])/i.test(u);
+}
+
+function isImageUrl(url){
+  const u = str(url).toLowerCase();
+  let decoded = u;
+  try { decoded = decodeURIComponent(u); } catch (e) {}
+  return /\.(jpg|jpeg|png|webp|gif|avif|svg)(?:$|[?#])/i.test(u) ||
+    /\.(jpg|jpeg|png|webp|gif|avif|svg)(?:$|[?#])/i.test(decoded) ||
+    /[?&](?:format|fm|type|mime)=image%2F(?:png|jpe?g|webp|gif|avif|svg)/i.test(u) ||
+    /[?&](?:format|fm|type)=(?:png|jpe?g|webp|gif|avif|svg)(?:$|[&#])/i.test(u) ||
+    /image\/(?:png|jpe?g|webp|gif|avif|svg\+xml)/i.test(decoded);
+}
+
+function isPlayableUrl(url){
+  const u = str(url).toLowerCase();
+  return /\.(html|htm|zip|mraid)(?:$|[?#])/i.test(u) || u.indexOf('playable') !== -1 || u.indexOf('mraid') !== -1;
+}
+
+function isHtmlCard(r){
+  let value = str(r && r.name) + ' ' + cleanUrl((r && r.previewUrl) || '');
+  try { value += ' ' + decodeURIComponent(value); } catch (e) {}
+  return /\.html(?:$|[?#\s])/i.test(value) || /(?:^|[\s/\\])html_/i.test(value);
+}
+
+function inferFormat(name, url, currentFormat, subformat){
+  const n = str(name).toLowerCase();
+  const u = str(url).toLowerCase();
+  const f = str(currentFormat).toLowerCase();
+  const s = str(subformat).toLowerCase();
+
+  // Explicit asset name and URL signals must override the parent set format.
+  const explicitPlayable =
+    /\.(html|htm|zip|mraid)(?:$|[?#]|\s)/i.test(n) ||
+    isPlayableUrl(u) ||
+    n.indexOf('playable') !== -1 ||
+    n.indexOf('_applovin.html') !== -1 ||
+    n.indexOf('svg') !== -1;
+
+  const explicitVideo =
+    /\.(mp4|webm|mov|m4v|m3u8)(?:$|[?#]|\s)/i.test(n) ||
+    isVideoUrl(u);
+
+  const explicitImage =
+    /\.(jpg|jpeg|png|webp|gif|avif|svg)(?:$|[?#]|\s)/i.test(n) ||
+    isImageUrl(u);
+
+  if (explicitPlayable) return 'Playable';
+  if (explicitVideo) return 'Video';
+  if (explicitImage) return 'Image';
+
+  // Use parent metadata only when the asset itself gives no clear signal.
+  if (
+    f.indexOf('playable') !== -1 ||
+    s.indexOf('playable') !== -1 ||
+    f.indexOf('html') !== -1 ||
+    s.indexOf('html') !== -1
+  ) {
+    return 'Playable';
+  }
+
+  if (
+    f.indexOf('video') !== -1 ||
+    s.indexOf('video') !== -1
+  ) {
+    return 'Video';
+  }
+
+  if (
+    f.indexOf('image') !== -1 ||
+    f.indexOf('graphic') !== -1 ||
+    s.indexOf('image') !== -1 ||
+    s.indexOf('graphic') !== -1
+  ) {
+    return 'Image';
+  }
+
+  return 'Image';
+}
+
+function parseAppLovinDataRows(rows){
+  const byCreative = {};
+
+  rows.forEach(r => {
+    const date = ymdCell(readField(r, 'Date') || readField(r, 'date'));
+    const network = str(readField(r, 'Network') || readField(r, 'source')) || 'AppLovin';
+    const creativeId = str(
+      readField(r, 'Creative ID') ||
+      readField(r, 'asset_id') ||
+      readField(r, 'creative_id') ||
+      readField(r, 'Creative Set ID') ||
+      readField(r, 'Creative Set IDs') ||
+      readField(r, 'creative_set_id') ||
+      readField(r, 'creative_set_ids')
+    );
+    const name = str(
+      readField(r, 'Creative Name') ||
+      readField(r, 'asset_name') ||
+      readField(r, 'creative_name') ||
+      readField(r, 'Creative Set Name') ||
+      readField(r, 'creative_set_name')
+    ) || creativeId;
+    const previewUrl = cleanUrl(readField(r, 'Preview URL') || readField(r, 'preview_url') || readField(r, 'Asset URL') || readField(r, 'asset_url'));
+    const inferredFormat = inferFormat(name, previewUrl, readField(r, 'Format') || readField(r, 'format'), readField(r, 'Sub-format') || readField(r, 'sub_format'));
+
+    if (!creativeId || !name) return;
+
+    const key = (network + '|' + creativeId).toLowerCase();
+
+    if (!byCreative[key]) {
+      byCreative[key] = {
+        network,
+        id: creativeId,
+        name,
+        format: inferredFormat,
+        subformat: str(readField(r, 'Sub-format') || readField(r, 'sub_format')),
+        previewUrl: previewUrl,
+        parent: str(
+          readField(r, 'Creative Set IDs') ||
+          readField(r, 'creative_set_ids') ||
+          readField(r, 'Creative Set ID') ||
+          readField(r, 'creative_set_id')
+        ),
+        campaigns: str(readField(r, 'Campaigns') || readField(r, 'campaigns')),
+        platform: str(readField(r, 'Platforms') || readField(r, 'platform')),
+        days: [],
+      };
+    }
+
+    const c = byCreative[key];
+
+    if (c.format === 'Image' && inferredFormat !== 'Image') c.format = inferredFormat;
+    if (!c.previewUrl && previewUrl) c.previewUrl = previewUrl;
+    if (!c.parent) {
+      c.parent = str(
+        readField(r, 'Creative Set IDs') ||
+        readField(r, 'creative_set_ids') ||
+        readField(r, 'Creative Set ID') ||
+        readField(r, 'creative_set_id')
+      );
+    }
+
+    c.days.push({
+      date,
+      spend: num(readField(r, 'Spend') || readField(r, 'spend')),
+      impressions: num(readField(r, 'Impressions') || readField(r, 'impressions')),
+      clicks: num(readField(r, 'Clicks') || readField(r, 'clicks')),
+      installs: num(readField(r, 'Installs') || readField(r, 'installs')),
+      revenue: num(readField(r, 'Revenue')) || num(readField(r, 'Revenue D7')) || num(readField(r, 'D7 Revenue')),
+      sales: num(readField(r, 'Sales')),
+      roas7: rate(readField(r, 'D7 ROAS')) || rate(readField(r, 'ROAS D7')) || rate(readField(r, 'ROAS')),
+      roas30: rate(readField(r, 'D30 ROAS')) || rate(readField(r, 'ROAS D30')),
+      iapRoas7: rate(readField(r, 'IAP D7')) || rate(readField(r, 'IAP ROAS D7')) || rate(readField(r, 'D7 IAP ROAS')),
+      adRoas7: rate(readField(r, 'Ad D7')) || rate(readField(r, 'Ad ROAS D7')) || rate(readField(r, 'D7 Ad ROAS')),
+      rowCtr: rate(readField(r, 'CTR') || readField(r, 'ctr')),
+      rowCpm: num(readField(r, 'CPM') || readField(r, 'cpm')),
+      rowCpi: num(readField(r, 'CPI') || readField(r, 'cpi')),
+    });
+  });
+
+  return Object.values(byCreative);
+}
+
+function getTabRows(payload){
+  const source = Array.isArray(payload) ? payload : (payload.rows || payload.values || payload.data || []);
+  if (!Array.isArray(source) || !source.length) return [];
+  if (source[0] && !Array.isArray(source[0]) && typeof source[0] === 'object') return source;
+  const headers = payload.headers || source[0];
+  if (!Array.isArray(headers)) return [];
+  return source.slice(payload.headers ? 0 : 1).map(row => {
+    const obj = {};
+    headers.forEach((h,i) => { obj[str(h)] = row[i]; });
+    return obj;
+  });
+}
+
+/* ---------------------------------------------------------------------------
+ * FETCH — with instant-paint cache
+ * ------------------------------------------------------------------------- */
+function loadFromCache(){
+  try {
+    const raw = localStorage.getItem(cacheKeyForCurrentRange());
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch(e){ return null; }
+}
+function saveToCache(data){
+  try { localStorage.setItem(CONFIG.CACHE_KEY, JSON.stringify(data)); } catch(e){ /* quota or disabled — ignore */ }
+}
+
+function selectedSourceSheet(){
+  return CONFIG.SHEET;
+}
+
+function showLoginError(message){
+  const el = document.getElementById('loginError');
+  if (!el) return;
+  el.textContent = message || '';
+  el.classList.toggle('show', !!message);
+}
+
+function unlockDashboard(){
+  document.getElementById('loginBackdrop').classList.remove('show');
+  document.getElementById('appShell').classList.remove('auth-locked');
+}
+
+function lockDashboard(message){
+  document.getElementById('appShell').classList.add('auth-locked');
+  document.getElementById('loginBackdrop').classList.add('show');
+  if (message) showLoginError(message);
+}
+
+function loadDashboardAuth(){
+  return new Promise(resolve => {
+    const backdrop = document.getElementById('loginBackdrop');
+    const form = document.getElementById('loginForm');
+    const emailInput = document.getElementById('loginEmail');
+    const passwordInput = document.getElementById('loginPassword');
+    const submitBtn = form.querySelector('button[type="submit"]');
+
+    try {
+      emailInput.value = localStorage.getItem('dashboardAuthEmail') || '';
+    } catch(e) {}
+
+    backdrop.classList.add('show');
+    document.getElementById('appShell').classList.add('auth-locked');
+    emailInput.disabled = false;
+    passwordInput.disabled = false;
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Login';
+    setTimeout(() => (emailInput.value ? passwordInput : emailInput).focus(), 0);
+
+    form.onsubmit = event => {
+      event.preventDefault();
+
+      const email = str(emailInput.value).toLowerCase();
+      const password = String(passwordInput.value || '');
+
+      if (!email || !password) {
+        showLoginError('Enter both email and password.');
+        return;
+      }
+
+      DASHBOARD_AUTH = { email, password };
+      showLoginError('');
+      emailInput.disabled = true;
+      passwordInput.disabled = true;
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Checking...';
+
+      // Verify against Apps Script and get a session token BEFORE unlocking.
+      apiLogin(email, password)
+        .then(() => {
+          try { localStorage.setItem('dashboardAuthEmail', email); } catch(e) {}
+          resolve();
+        })
+        .catch(err => {
+          // Re-enable the form and show the server's reason.
+          emailInput.disabled = false;
+          passwordInput.disabled = false;
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Login';
+          showLoginError(String(err && err.message || err));
+        });
+    };
+  });
+}
+
+function cacheKeyForCurrentRange(){
+  const r = rangeForPreset(appliedDatePreset);
+  return CONFIG.CACHE_KEY + '|' + selectedSourceSheet() + '|' + (r.startDate || 'all') + '|' + (r.endDate || 'all');
+}
+
+function saveToCache(data){
+  try { localStorage.setItem(cacheKeyForCurrentRange(), JSON.stringify(data)); } catch(e){ /* ignore */ }
+}
+
+function fetchDataOnce(forceSync){
+  return new Promise((resolve, reject) => {
+    const range = rangeForPreset(appliedDatePreset);
+    const apiRange = apiRangeForFetch(range);
+    const sourceSheet = selectedSourceSheet();
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), CONFIG.FETCH_TIMEOUT_MS);
+
+    const fetchSheet = (sheetName, shouldSync, requestRange) => {
+      const fetchRange = requestRange || apiRange;
+      // Secure POST: token in the body (text/plain → no CORS preflight).
+      return fetch(CONFIG.API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        signal: controller.signal,
+        cache: 'no-store',
+        body: JSON.stringify({
+          action: 'fetch',
+          token: SESSION_TOKEN,
+          sheet: sheetName,
+          sync: shouldSync ? 'true' : '',
+          startDate: fetchRange.startDate || '',
+          endDate: fetchRange.endDate || '',
+        })
+      })
+        .then(r => {
+          if (!r.ok) throw new Error(sheetName + ' API returned HTTP ' + r.status);
+          return r.json();
+        })
+        .then(data => {
+          if (data && data.error === 'unauthorized') {
+            // token missing/expired → clear it so the caller forces re-login
+            SESSION_TOKEN = '';
+            try { sessionStorage.removeItem('dashSessionToken'); } catch(e){}
+            throw new Error('unauthorized');
+          }
+          if (data && data.error) throw new Error(data.error);
+          if (!data || !Array.isArray(data.rows)) throw new Error('Unexpected API response shape from ' + sheetName);
+          return data;
+        });
+    };
+
+    const fetchBothSheets = requestRange => Promise.all([
+      fetchSheet(CONFIG.SHEET, forceSync, requestRange),
+      fetchSheet(CONFIG.GOOGLE_SHEET, false, requestRange).catch(err => {
+        console.warn('Google Ads data skipped:', err);
+        return { game: '', refreshedAt: '', rows: [] };
+      }),
+    ]);
+
+    const buildPayload = ([appLovinData, googleAdsData]) => ({
+      game: appLovinData.game || googleAdsData.game || '',
+      refreshedAt: appLovinData.refreshedAt || googleAdsData.refreshedAt || '',
+      creatives: parseAppLovinDataRows(getTabRows(appLovinData).concat(getTabRows(googleAdsData))),
+      sourceSheet: CONFIG.SHEET + ' + ' + CONFIG.GOOGLE_SHEET,
+      range,
+    });
+
+    fetchBothSheets(apiRange)
+      .then(result => {
+        const payload = buildPayload(result);
+        const hasSelectedDateRows = aggregate(payload.creatives, range.startDate, range.endDate)
+          .some(row => row.daysActive > 0);
+        if (hasSelectedDateRows || (!range.startDate && !range.endDate)) return payload;
+        return fetchBothSheets({ startDate: '', endDate: '' }).then(buildPayload);
+      })
+      .then(payload => {
+        clearTimeout(timeoutId);
+        resolve(payload);
+      })
+      .catch(err => {
+        clearTimeout(timeoutId);
+        reject(err.name === 'AbortError' ? new Error('Request timed out after ' + (CONFIG.FETCH_TIMEOUT_MS/1000) + 's — check API_URL and that the Apps Script deployment is still active.') : err);
+      });
+  });
+}
+
+function fetchData(forceSync, attemptsLeft){
+  if (attemptsLeft === undefined) attemptsLeft = CONFIG.FETCH_RETRIES;
+  return fetchDataOnce(forceSync).catch(err => {
+    if (attemptsLeft > 0) return fetchData(forceSync, attemptsLeft - 1);
+    throw err;
+  });
+}
+
+/* ---------------------------------------------------------------------------
+ * AGGREGATION for the selected date range
+ * ------------------------------------------------------------------------- */
+function rangeForPreset(value){
+  const today = new Date(); today.setHours(0,0,0,0);
+  if (value === 'all') return { startDate:'', endDate:'' };
+  if (value === 'today') return { startDate: ymd(today), endDate: ymd(today) };
+  if (value === 'single'){
+    const picked = appliedSingleDate || ymd(today);
+    return { startDate: picked, endDate: picked };
+  }
+  if (value === 'custom') return { startDate: document.getElementById('customStart').value||'', endDate: document.getElementById('customEnd').value||'' };
+  if (value === 'last_month'){
+    const firstOfThis = new Date(today.getFullYear(), today.getMonth(), 1);
+    const lastOfPrev = new Date(firstOfThis.getTime()-86400000);
+    const firstOfPrev = new Date(lastOfPrev.getFullYear(), lastOfPrev.getMonth(), 1);
+    return { startDate: ymd(firstOfPrev), endDate: ymd(lastOfPrev) };
+  }
+  if (value === 'this_month'){
+    const first = new Date(today.getFullYear(), today.getMonth(), 1);
+    return { startDate: ymd(first), endDate: ymd(today) };
+  }
+  const days = parseInt(value,10);
+  if (days === 1){
+    const y = new Date(today); y.setDate(today.getDate()-1);
+    return { startDate: ymd(y), endDate: ymd(y) };
+  }
+  const start = new Date(today); start.setDate(today.getDate()-days);
+  const end = new Date(today); end.setDate(today.getDate()-1);
+  return { startDate: ymd(start), endDate: ymd(end) };
+}
+function presetLabel(value){
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  if (value === 'all') return 'All sheet rows';
+  if (value === 'today') return 'Today';
+  if (value === 'single') return 'Single date';
+  if (value === 'custom') return 'Custom range';
+  if (value === 'last_month'){ const d=new Date(); const l=new Date(d.getFullYear(),d.getMonth()-1,1); return months[l.getMonth()]+' '+l.getFullYear(); }
+  if (value === 'this_month'){ const d=new Date(); return months[d.getMonth()]+' '+d.getFullYear()+' (so far)'; }
+  if (value === '1') return 'Yesterday';
+  return 'Last '+value+' days';
+}
+
+function aggregate(creatives, startDate, endDate){
+  const serverFiltered = false;
+  return creatives.map(c => {
+    let spend=0, impr=0, clicks=0, installs=0, revenue=0, sales=0;
+    let roasW=0, roas7Sum=0, roas30Sum=0, iap7Sum=0, ad7Sum=0, daysActive=0;
+    let ctrW=0, ctrSum=0, cpmW=0, cpmSum=0, cpiW=0, cpiSum=0;
+    c.days.forEach(d => {
+      const rowDate = ymdCell(d.date);
+
+      if (!serverFiltered) {
+        if ((startDate || endDate) && !rowDate) return;
+        if (startDate && rowDate < startDate) return;
+        if (endDate && rowDate > endDate) return;
+      }
+
+      spend+=d.spend; impr+=d.impressions; clicks+=d.clicks;
+      installs+=d.installs; revenue+=d.revenue; sales+=d.sales;
+      const w = d.installs || 0;
+      roasW += w;
+      roas7Sum += d.roas7*w; roas30Sum += d.roas30*w; iap7Sum += d.iapRoas7*w; ad7Sum += d.adRoas7*w;
+      if (d.rowCtr){ const cw = d.impressions || 1; ctrW += cw; ctrSum += d.rowCtr*cw; }
+      if (d.rowCpm){ const mw = d.impressions || 1; cpmW += mw; cpmSum += d.rowCpm*mw; }
+      if (d.rowCpi){ const iw = d.installs || 1; cpiW += iw; cpiSum += d.rowCpi*iw; }
+      daysActive++;
+    });
+    const w = roasW || 1;
+    const ctr = impr ? clicks/impr : (ctrW ? ctrSum/ctrW : 0);
+    const cpm = impr ? (spend/impr)*1000 : (cpmW ? cpmSum/cpmW : 0);
+    const cpi = installs ? spend/installs : (cpiW ? cpiSum/cpiW : 0);
+    return {
+      network:c.network, id:c.id, name:c.name, format:c.format, subformat:c.subformat,
+      previewUrl:c.previewUrl, parent:c.parent, campaigns:c.campaigns, platform:c.platform,
+      spend, impressions:impr, clicks, installs, revenue, sales, daysActive,
+      ctr,
+      conversionRate: impr ? installs/impr : 0,
+      cpi,
+      cpm,
+      ipm: impr ? (installs/impr)*1000 : 0,
+      roas7: roasW ? roas7Sum/w : (spend ? revenue/spend : 0),
+    };
+  });
+}
+
+/* ---------------------------------------------------------------------------
+ * RENDER
+ * ------------------------------------------------------------------------- */
+function updateLabels(){
+  const range = rangeForPreset(appliedDatePreset);
+  document.getElementById('sbGame').textContent = META.game || 'Creative Analytics BI';
+  document.getElementById('pageSub').textContent =
+    (META.game ? META.game + ' · ' : '') + presetLabel(appliedDatePreset) +
+    (range.startDate && range.endDate ? ' (' + range.startDate + ' → ' + range.endDate + ')' : '');
+  document.getElementById('sbRefreshed').textContent = META.refreshedAt ? ('Refreshed ' + META.refreshedAt) : '—';
+}
+
+function render(){
+  const range = rangeForPreset(appliedDatePreset);
+  let rows = aggregate(CREATIVES, range.startDate, range.endDate);
+  if (range.startDate || range.endDate) rows = rows.filter(r => r.daysActive > 0);
+
+  const q = document.getElementById('search').value.toLowerCase().trim();
+  const network = document.getElementById('network').value;
+  const sort = document.getElementById('sort').value;
+
+  if (network !== 'all') rows = rows.filter(r => r.network === network);
+  if (q) rows = rows.filter(r =>
+    (r.name||'').toLowerCase().indexOf(q) !== -1 ||
+    (r.campaigns||'').toLowerCase().indexOf(q) !== -1 ||
+    (r.id||'').toLowerCase().indexOf(q) !== -1
+  );
+
+  const counts = { all: rows.length, Video:0, Playable:0, Image:0 };
+  rows.forEach(r => { if (counts[r.format]!==undefined) counts[r.format]++; });
+  Object.keys(counts).forEach(k => {
+    const el1 = document.getElementById('count-'+k), el2 = document.getElementById('nav-count-'+k);
+    if (el1) el1.textContent = counts[k];
+    if (el2) el2.textContent = counts[k];
+  });
+
+  renderKpis(rows);
+
+  const view = activeFormat === 'all' ? rows.slice() : rows.filter(r => r.format === activeFormat);
+  view.sort((a,b) => {
+    if (sort === 'cpi-asc'){
+      const av = Number.isFinite(a.cpi) && a.cpi > 0 ? a.cpi : Infinity;
+      const bv = Number.isFinite(b.cpi) && b.cpi > 0 ? b.cpi : Infinity;
+      return av - bv;
+    }
+    const av = Number(a[sort]) || 0;
+    const bv = Number(b[sort]) || 0;
+    return bv - av;
+  });
+  renderGrid(view);
+
+  requestAnimationFrame(() => renderCharts(rows));
+}
+
+function renderKpis(rows){
+  const totalSpend = rows.reduce((s,r)=>s+r.spend,0);
+  const totalInstalls = rows.reduce((s,r)=>s+r.installs,0);
+  const blendedCpi = totalInstalls ? totalSpend/totalInstalls : 0;
+  const blendedCtr = (() => { const impr = rows.reduce((s,r)=>s+r.impressions,0); const clk = rows.reduce((s,r)=>s+r.clicks,0); return impr ? clk/impr : 0; })();
+  const cards = [
+    ['blue','Creatives in view', rows.length.toLocaleString()],
+    ['green','Total spend', '$'+shortNum(totalSpend)],
+    ['purple','Total installs', shortNum(totalInstalls)],
+    ['amber','Blended CPI', blendedCpi ? '$'+blendedCpi.toFixed(2) : '—'],
+    ['blue','Blended CTR', blendedCtr ? (blendedCtr*100).toFixed(2)+'%' : '—'],
+  ];
+  document.getElementById('kpis').innerHTML = cards.map(([c,l,v]) =>
+    '<div class="kpi '+c+'"><div class="kpi-l">'+l+'</div><div class="kpi-v num">'+v+'</div></div>'
+  ).join('');
+}
+
+function renderCharts(rows){
+  if (!window.Chart) return;
+  Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
+  Chart.defaults.font.size = 11;
+  Chart.defaults.color = COLOR.ink3;
+
+  const buckets = { Video:0, Playable:0, Image:0 };
+  rows.forEach(r => {
+    const fmt = FORMATS.includes(r.format) ? r.format : 'Image';
+    buckets[fmt] += 1;
+  });
+
+  const labels = Object.keys(buckets).filter(k => buckets[k] > 0);
+  const data = labels.map(k => buckets[k]);
+  if (chartFormat) chartFormat.destroy();
+  chartFormat = new Chart(document.getElementById('chart-format').getContext('2d'), {
+    type:'doughnut',
+    data:{ labels, datasets:[{ data, backgroundColor:labels.map(l=>COLOR[l]), borderColor:'#0b0c0f', borderWidth:2, hoverOffset:8 }] },
+    options:{ responsive:true, maintainAspectRatio:false, cutout:'62%', animation:{duration:200},
+      plugins:{ legend:{ position:'bottom', labels:{ boxWidth:9, boxHeight:9, padding:12, color:'#dde1f5',
+        generateLabels:(chart)=>{ const ds=chart.data.datasets[0]; const total=ds.data.reduce((s,n)=>s+n,0)||1;
+          return chart.data.labels.map((label,i)=>({
+            text: label + '  ' + ds.data[i] + ' creatives · ' + ((ds.data[i]/total)*100).toFixed(1) + '%',
+            fillStyle: ds.backgroundColor[i],
+            strokeStyle: '#0b0c0f',
+            fontColor: '#dde1f5',
+            lineWidth: 1,
+            index: i
+          }));
+        } } },
+        tooltip:{
+          backgroundColor:'#1c1f2e',
+          titleColor:'#dde1f5',
+          bodyColor:'#dde1f5',
+          padding:9,
+          displayColors:false,
+          callbacks:{
+            label:(item)=>{
+              const total = item.dataset.data.reduce((s,n)=>s+n,0) || 1;
+              const count = Number(item.parsed || 0);
+              return count.toLocaleString() + ' creatives · ' + ((count / total) * 100).toFixed(1) + '%';
+            }
+          }
+        } } }
+  });
+
+  const top = rows.slice().sort((a,b)=>b.spend-a.spend).slice(0,10);
+  if (chartTop10) chartTop10.destroy();
+  chartTop10 = new Chart(document.getElementById('chart-top10').getContext('2d'), {
+    type:'bar',
+    data:{ labels: top.map(r=>truncate(r.name||r.id,24)), datasets:[{ data: top.map(r=>r.spend), backgroundColor: top.map(r=>COLOR[r.format]||COLOR.ink3), borderRadius:3 }] },
+    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, animation:{duration:200},
+      plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'#1c1f2e', titleColor:'#dde1f5', bodyColor:'#dde1f5', padding:9, displayColors:false, callbacks:{ label:(item)=>'$'+Math.round(item.parsed.x).toLocaleString() } } },
+      scales:{ x:{ grid:{color:COLOR.hairline}, ticks:{ color:COLOR.ink3, callback:(v)=>'$'+shortNum(v) } }, y:{ grid:{display:false}, ticks:{ color:'#dde1f5', autoSkip:false } } } }
+  });
+}
+
+// ── Lazy grid rendering (ported from the sprint dashboard's IntersectionObserver
+// pattern) ───────────────────────────────────────────────────────────────────
+// Instead of building every card in one innerHTML pass, render the first batch
+// and append the next as a sentinel near the bottom approaches the viewport
+// (rootMargin pre-loads before the user reaches it). Cuts the one-shot DOM cost
+// on large asset lists. One observer per render cycle, disconnected and rebuilt
+// on each renderGrid so stale rows never linger.
+var GRID_BATCH = 24;          // cards drawn per batch
+var _gridObserver = null;
+var _gridRows = [];
+var _gridDrawn = 0;
+
+function appendCardBatch(){
+  const grid = document.getElementById('assetGrid');
+  if (!grid) return;
+  const end = Math.min(_gridDrawn + GRID_BATCH, _gridRows.length);
+  let html = '';
+  for (let i = _gridDrawn; i < end; i++) html += cardHtml(_gridRows[i], i);
+  grid.insertAdjacentHTML('beforeend', html);
+  _gridDrawn = end;
+}
+
+function renderGrid(rows){
+  const el = document.getElementById('content');
+
+  // Tear down the previous cycle's observer so it can't fire on stale data.
+  if (_gridObserver){ try { _gridObserver.disconnect(); } catch(e){} _gridObserver = null; }
+  _gridRows = rows;
+  _gridDrawn = 0;
+
+  if (!rows.length){
+    // Don't flash "No match" while a fetch is still in flight (the two-stage
+    // date fetch can briefly have zero rows before the full payload lands).
+    if (_isFetching){ renderSkeleton(8); return; }
+    el.innerHTML = '<div class="empty"><h3>No '+(activeFormat==='all'?'creatives':activeFormat.toLowerCase()+'s')+' match</h3><p>Try a wider date range or different filters.</p></div>';
+    return;
+  }
+
+  // Grid container + a sentinel the observer watches to trigger the next batch.
+  el.innerHTML = '<div class="asset-grid" id="assetGrid"></div><div id="gridSentinel" class="grid-sentinel"></div>';
+  const grid = document.getElementById('assetGrid');
+
+  // ONE delegated click handler for the whole grid — survives batch appends,
+  // no per-card listeners, no index drift.
+  grid.addEventListener('click', e => {
+    const card = e.target.closest('.asset-card');
+    if (!card) return;
+    const idx = Number(card.getAttribute('data-idx'));
+    if (_gridRows[idx]) openModal(_gridRows[idx]);
+  });
+
+  appendCardBatch();  // first batch, synchronously (instant paint)
+
+  const sentinel = document.getElementById('gridSentinel');
+
+  // Fallback for old browsers — draw everything up front.
+  if (!('IntersectionObserver' in window)){
+    while (_gridDrawn < _gridRows.length) appendCardBatch();
+    sentinel.style.display = 'none';
+    return;
+  }
+
+  _gridObserver = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      appendCardBatch();
+      if (_gridDrawn >= _gridRows.length){
+        try { _gridObserver.disconnect(); } catch(e){}
+        _gridObserver = null;
+        sentinel.style.display = 'none';
+      }
+    });
+  }, { root: document.querySelector('.page-content'), rootMargin: '600px 0px', threshold: 0.01 });
+
+  _gridObserver.observe(sentinel);
+}
+
+function money(n, digits){
+  if (!n) return '—';
+  return '$' + Number(n).toLocaleString(undefined, { minimumFractionDigits: digits, maximumFractionDigits: digits });
+}
+function pct(n){
+  return n ? (n*100).toFixed(2)+'%' : '—';
+}
+function renderTable(rows){
+  const el = document.getElementById('content');
+  if (!rows.length){
+    el.innerHTML = '<div class="empty"><h3>No '+(activeFormat==='all'?'creatives':activeFormat.toLowerCase()+'s')+' match</h3><p>Try a wider date range or different filters.</p></div>';
+    return;
+  }
+  el.innerHTML =
+    '<div class="asset-table-wrap"><table class="asset-table">'+
+      '<thead><tr>'+
+        '<th>Asset</th><th>Format</th><th class="num">Impressions</th><th class="num">Spend</th>'+
+        '<th class="num">Installs</th><th class="num">CPI</th><th class="num">CPM</th><th class="num">CTR</th>'+
+      '</tr></thead>'+
+      '<tbody>'+
+        rows.map(r =>
+          '<tr>'+
+            '<td class="asset-cell"><strong>'+escapeHtml(r.name||r.id)+'</strong><span>'+escapeHtml(r.id)+'</span></td>'+
+            '<td>'+escapeHtml(r.format||'')+'</td>'+
+            '<td class="num">'+shortNum(r.impressions)+'</td>'+
+            '<td class="num">'+money(r.spend, 2)+'</td>'+
+            '<td class="num">'+(r.installs ? shortNum(r.installs) : '—')+'</td>'+
+            '<td class="num">'+money(r.cpi, 2)+'</td>'+
+            '<td class="num">'+money(r.cpm, 2)+'</td>'+
+            '<td class="num">'+pct(r.ctr)+'</td>'+
+          '</tr>'
+        ).join('')+
+      '</tbody>'+
+    '</table></div>';
+  el.querySelectorAll('tbody tr').forEach((row,i) => row.addEventListener('click', () => openModal(rows[i])));
+}
+
+function iconSvg(format){
+  if (format==='Video') return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="6 4 20 12 6 20 6 4" stroke-linejoin="round"/></svg>';
+  if (format==='Playable') return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="6" width="18" height="12"/><path d="M9 12h6M12 9v6"/></svg>';
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></svg>';
+}
+function parseYouTubeId(url){ const m = url.match(/(?:v=|youtu\.be\/)([\w-]{11})/); return m ? m[1] : null; }
+
+function thumbHtml(r){
+  const url = cleanUrl(r.previewUrl || '');
+  const u = url.toLowerCase();
+
+  // ── PLAYABLE ── never render a preview in the card. The thumb stays blank
+  // (a same-height, themed placeholder) so nothing runs in the dashboard.
+  // Clicking the card opens the modal, which shows an "Open in new tab" button.
+  // Checked FIRST so a playable can never fall into the image/video branches.
+  if (isHtmlCard(r)) {
+    // Use the local custom image for .html cards only.
+    return '<img src="' + escapeHtml(PLAYABLE_THUMB_IMG) + '" alt="" loading="lazy" ' +
+      'onerror="this.style.display=\'none\'">';
+  }
+
+  if (isHtmlCard(r) || isPlayableUrl(u) || r.format === 'Playable') {
+    return '<div class="asset-thumb-fallback fmt-Playable">' + iconSvg('Playable') + '</div>';
+  }
+
+  if (isImageUrl(u) || r.format === 'Image') {
+    return '<img ' +
+      'src="' + escapeHtml(url) + '" ' +
+      'alt="" loading="lazy" ' +
+      'onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' +
+      '<div class="asset-thumb-fallback fmt-' + escapeHtml(r.format) + '" style="display:none">' +
+        iconSvg(r.format) +
+      '</div>';
+  }
+
+  if (
+    u.indexOf('youtube.com') !== -1 ||
+    u.indexOf('youtu.be') !== -1
+  ) {
+    const id = parseYouTubeId(url);
+
+    if (id) {
+      return '<img src="https://img.youtube.com/vi/' +
+        id +
+        '/hqdefault.jpg" alt="" loading="lazy">';
+    }
+  }
+
+  // Only actual video URLs are passed to the video player.
+  if (isVideoUrl(u)) {
+    return '<video ' +
+      'src="' + escapeHtml(url) + '" ' +
+      'muted playsinline preload="metadata">' +
+    '</video>';
+  }
+
+  return '<div class="asset-thumb-fallback fmt-' +
+    r.format +
+  '">' +
+    iconSvg(r.format) +
+  '</div>';
+}
+
+function miniKpi(label, value, muted){
+  return '<div><div class="mini-l">'+label+'</div><div class="mini-v num'+(muted?' muted':'')+'">'+value+'</div></div>';
+}
+function cardHtml(r,i){
+  const network = r.network==='AppLovin' ? 'AL' : (r.network==='Google Ads' ? 'GG' : escapeHtml(r.network));
+  // Playables get a blank, themed thumb (see thumbHtml + .is-playable CSS).
+  const isPlayable = (r.format === 'Playable') || isPlayableUrl(cleanUrl(r.previewUrl || ''));
+  const thumbClass = 'asset-thumb' + (isPlayable ? ' is-playable' : '') + (isHtmlCard(r) ? ' has-custom-thumb' : '');
+  return '<article class="asset-card" data-idx="'+i+'" style="animation-delay:'+Math.min(i*12,260)+'ms">'+
+    (i<3 ? '<div class="asset-rank">#'+(i+1)+'</div>' : '') +
+    '<div class="'+thumbClass+'">'+thumbHtml(r)+
+      '<div class="asset-badges"><span class="asset-badge">'+network+'</span><span class="asset-badge fmt-'+r.format+'">'+r.format+'</span></div>'+
+    '</div>'+
+    '<div class="asset-body">'+
+      '<div class="asset-name" title="'+escapeHtml(r.name)+'">'+escapeHtml(r.name||r.id)+'</div>'+
+      '<div class="asset-kpis">'+
+        miniKpi('Spend','$'+shortNum(r.spend),false)+
+        miniKpi('Installs', r.installs ? shortNum(r.installs) : '—', !r.installs)+
+        miniKpi('CTR', r.ctr ? (r.ctr*100).toFixed(2)+'%' : '—', !r.ctr)+
+        miniKpi('Conversion', r.conversionRate ? (r.conversionRate*100).toFixed(2)+'%' : '—', !r.conversionRate)+
+        miniKpi('IPM', r.ipm ? r.ipm.toFixed(2) : '—', !r.ipm)+
+        miniKpi('CPI', r.cpi ? '$'+r.cpi.toFixed(2) : '—', !r.cpi)+
+      '</div>'+
+    '</div>'+
+  '</article>';
+}
+
+function previewHtml(r){
+  const url = cleanUrl(r.previewUrl || '');
+  const u = url.toLowerCase();
+  const safeUrl = escapeHtml(url);
+
+  if (!url) {
+    return '<div style="color:#666;text-align:center;padding:20px">' +
+      'No preview URL found for this asset in applovin_data.' +
+    '</div>';
+  }
+
+  // ── PLAYABLE ── never embedded (memory-heavy). The modal preview shows a
+  // themed button that opens the playable in a new browser tab. Checked FIRST
+  // (before image/video) so playables always route here. Covers ZIP too.
+  // Direct MP4/video URLs always use the centered video player, even when
+  // their sheet metadata is incorrectly marked as Playable.
+  if (isVideoUrl(u) && !isHtmlCard(r)) {
+    return '<video ' +
+      'src="' + safeUrl + '" ' +
+      'controls autoplay playsinline>' +
+    '</video>';
+  }
+
+  if (isHtmlCard(r) || isPlayableUrl(u) || r.format === 'Playable') {
+    return '<div class="preview-action">' +
+      '<a class="ext-link" href="' + safeUrl + '" target="_blank" rel="noopener">' +
+        'Open in new tab ↗' +
+      '</a>' +
+    '</div>';
+  }
+
+  if (isImageUrl(u) || r.format === 'Image') {
+    return '<img src="' + safeUrl + '" alt="" ' +
+      'onerror="this.outerHTML=\'<a class=&quot;ext-link&quot; href=&quot;' +
+        safeUrl +
+      '&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;>Open asset ↗</a>\'">';
+  }
+
+  if (u.indexOf('youtube.com') !== -1 || u.indexOf('youtu.be') !== -1) {
+    const id = parseYouTubeId(url);
+
+    if (id) {
+      return '<iframe ' +
+        'src="https://www.youtube.com/embed/' + id + '" ' +
+        'allow="autoplay; encrypted-media; fullscreen" ' +
+        'allowfullscreen>' +
+      '</iframe>';
+    }
+  }
+
+  // Only direct video URLs should enter the video element.
+  if (isVideoUrl(u)) {
+    return '<video ' +
+      'src="' + safeUrl + '" ' +
+      'controls autoplay playsinline>' +
+    '</video>';
+  }
+
+  return '<a class="ext-link" href="' + safeUrl + '" target="_blank" rel="noopener">' +
+    'Open asset ↗' +
+  '</a>';
+}
+
+function modalInfoHtml(r){
+  return [
+    '<div>',
+      '<div class="modal-badges">',
+        '<span class="pill">'+(r.network==='AppLovin'?'AL':(r.network==='Google Ads'?'GG':escapeHtml(r.network)))+'</span>',
+        '<span class="pill">'+r.format+'</span>',
+        (r.subformat ? '<span class="pill">'+escapeHtml(r.subformat)+'</span>' : ''),
+      '</div>',
+      '<h2>'+escapeHtml(r.name||r.id)+'</h2>',
+      '<div class="modal-id">'+escapeHtml(r.id)+'</div>',
+    '</div>',
+    '<div class="modal-section"><h3>Volume</h3><div class="mkpi-grid">'+
+      miniKpi('Spend','$'+shortNum(r.spend),false)+miniKpi('Impressions',shortNum(r.impressions),false)+miniKpi('Clicks',shortNum(r.clicks),false)+
+    '</div></div>',
+    '<div class="modal-section"><h3>Install economics <span style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--mut)">(attributed by impression share within each set)</span></h3><div class="mkpi-grid">'+
+      miniKpi('Installs', r.installs?shortNum(r.installs):'—', !r.installs)+
+      miniKpi('IPM', r.ipm?r.ipm.toFixed(2):'—', !r.ipm)+
+      miniKpi('CPI', r.cpi?'$'+r.cpi.toFixed(2):'—', !r.cpi)+
+      miniKpi('CTR', r.ctr?(r.ctr*100).toFixed(2)+'%':'—', !r.ctr)+
+      miniKpi('CPM', r.cpm?'$'+r.cpm.toFixed(2):'—', !r.cpm)+
+      miniKpi('Conversion', r.conversionRate?(r.conversionRate*100).toFixed(2)+'%':'—', !r.conversionRate)+
+    '</div></div>',
+
+    (r.campaigns ? '<div class="modal-section"><h3>Campaigns</h3><p>'+escapeHtml(r.campaigns)+'</p></div>' : ''),
+    (r.parent ? '<div class="modal-section"><h3>Creative sets</h3><p>'+escapeHtml(r.parent)+'</p></div>' : ''),
+  ].join('');
+}
+function openModal(r){
+  document.getElementById('modal-preview').innerHTML = '<button class="modal-close" id="modal-close">✕</button>'+previewHtml(r);
+  document.getElementById('modal-info').innerHTML = modalInfoHtml(r);
+  document.getElementById('modal-backdrop').classList.add('show');
+  document.getElementById('modal-close').addEventListener('click', closeModal);
+}
+function closeModal(){
+  document.getElementById('modal-backdrop').classList.remove('show');
+  document.getElementById('modal-preview').querySelectorAll('video,iframe').forEach(el=>el.remove());
+}
+document.getElementById('modal-backdrop').addEventListener('click', e => { if (e.target.id==='modal-backdrop') closeModal(); });
+document.addEventListener('keydown', e => { if (e.key==='Escape') closeModal(); });
+
+/* ---------------------------------------------------------------------------
+ * SKELETON / BANNERS
+ * ------------------------------------------------------------------------- */
+function renderSkeleton(n){
+  const content = document.getElementById('content');
+  if (!document.getElementById('skeleton')) content.innerHTML = '<div class="skeleton-grid" id="skeleton"></div>';
+  const el = document.getElementById('skeleton');
+  el.innerHTML = Array.from({length:n}).map(()=>
+    '<div class="sk-card"><div class="sk-thumb"></div><div class="sk-lines"><div class="sk-line w60"></div><div class="sk-line w40"></div></div></div>'
+  ).join('');
+}
+
+function renderLoadingCreatives(){
+  const el = document.getElementById('content');
+  if (!el) return;
+  el.innerHTML =
+    '<div class="empty loading-creatives">' +
+      '<div class="lc-spinner"></div>' +
+      '<h3>Loading creatives…</h3>' +
+      '<p>Fetching the latest data for this date range.</p>' +
+    '</div>';
+}
+function showBanner(kind, msg){
+  document.getElementById('banners').innerHTML = '<div class="banner '+kind+'">'+escapeHtml(msg)+'</div>';
+}
+function clearBanner(){ document.getElementById('banners').innerHTML = ''; }
+function setStatus(state, text){
+  const dot = document.getElementById('sbDot');
+  dot.className = 'sdot' + (state==='err' ? ' err' : '');
+  document.getElementById('sbStatus').textContent = text;
+}
+
+/* ---------------------------------------------------------------------------
+ * BIND + BOOT
+ * ------------------------------------------------------------------------- */
+function bindFilters(){
+  document.getElementById('search').addEventListener('input', render);
+  document.getElementById('network').addEventListener('change', render);
+  document.getElementById('sort').addEventListener('change', render);
+
+  const dateSel = document.getElementById('dateRange');
+  const singleWrap = document.getElementById('singleDateWrap');
+  const customWrap = document.getElementById('customDates');
+  const today = new Date();
+  document.getElementById('singleDate').value = ymd(today);
+  appliedDatePreset = dateSel.value;
+
+  function updateDateInputs(){
+    singleWrap.classList.toggle('hidden', dateSel.value !== 'single');
+    customWrap.classList.toggle('hidden', dateSel.value !== 'custom');
+  }
+
+  dateSel.addEventListener('change', () => {
+    updateDateInputs();
+    if (dateSel.value === 'single') return;
+
+    appliedDatePreset = dateSel.value;
+    if (dateSel.value === 'custom'){
+      const today=new Date(), seven=new Date(today); seven.setDate(today.getDate()-7);
+      if (!document.getElementById('customStart').value) document.getElementById('customStart').value = ymd(seven);
+      if (!document.getElementById('customEnd').value) document.getElementById('customEnd').value = ymd(today);
+    }
+    updateLabels(); refresh(false);
+  });
+  document.getElementById('singleDateConfirm').addEventListener('click', () => {
+    const singleDate = document.getElementById('singleDate');
+    if (!singleDate.value){
+      singleDate.reportValidity();
+      return;
+    }
+    appliedSingleDate = singleDate.value;
+    appliedDatePreset = 'single';
+    updateLabels();
+    refresh(false);
+  });
+  document.getElementById('customStart').addEventListener('change', () => { updateLabels(); refresh(false); });
+  document.getElementById('customEnd').addEventListener('change', () => { updateLabels(); refresh(false); });
+  updateDateInputs();
+
+  document.querySelectorAll('[data-fmt]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const fmt = btn.dataset.fmt;
+      document.querySelectorAll('[data-fmt]').forEach(b => b.classList.toggle('on', b.dataset.fmt===fmt));
+      activeFormat = fmt;
+      render();
+    });
+  });
+
+  document.getElementById('syncBtn').addEventListener('click', () => refresh(true));
+  document.getElementById('hamburgerBtn').addEventListener('click', () => document.getElementById('sidebar').classList.toggle('open'));
+}
+
+function applyData(payload, fromCache){
+  unlockDashboard();
+  META = { game: payload.game, refreshedAt: payload.refreshedAt };
+  CREATIVES = payload.creatives;
+  updateLabels();
+  clearBanner();
+  if (!CREATIVES.length){
+    showBanner('warn', 'The API responded, but no rows matched the selected date range in applovin_data. Try "All sheet rows" or click "Sync Now".');
+  }
+  render();
+  setStatus('ok', fromCache ? 'Showing cached data' : 'Live');
+}
+
+function refresh(forceIndicator){
+  const btn = document.getElementById('syncBtn');
+  const icn = document.getElementById('syncIcn');
+  const myReq = ++_reqSeq;          // tag this request as the newest
+  btn.disabled = true;
+  icn.classList.add('spinning');
+  setStatus('ok', forceIndicator ? 'Syncing...' : 'Loading...');
+  showBanner('warn', 'Loading data...');
+  renderSkeleton(8);
+  _isFetching = true;
+  if (forceIndicator){ btn.disabled = true; icn.classList.add('spinning'); setStatus('ok','Syncing…'); }
+  fetchData(forceIndicator)
+    .then(payload => {
+      if (myReq !== _reqSeq) return;   // a newer refresh started — ignore this stale result
+      saveToCache(payload);
+      applyData(payload, false);
+    })
+    .catch(err => {
+      if (myReq !== _reqSeq) return;   // stale failure — ignore
+      setStatus('err', 'Sync failed');
+      const msg = String(err && err.message || err);
+      if (/password|authorized|unauthorized|email|role/i.test(msg)) {
+        lockDashboard(msg);
+        loadDashboardAuth().then(() => refresh(forceIndicator));
+      } else {
+        showBanner('err', 'Could not refresh from the API: ' + msg);
+      }
+    })
+    .finally(() => {
+      if (myReq !== _reqSeq) return;   // don't let a stale request flip UI state
+      _isFetching = false;
+      btn.disabled=false; icn.classList.remove('spinning');
+    });
+}
+async function startDashboard(){
+  await loadEnvConfig();
+
+  if (!CONFIG.API_URL || CONFIG.API_URL.indexOf('PASTE_') === 0){
+    setStatus('err','Setup required');
+    const envHint = location.protocol === 'file:'
+      ? 'Open this dashboard through a local server so index.html can read .env.'
+      : 'Check that .env contains API_URL=... next to index.html.';
+    showBanner('err', envHint);
+    document.getElementById('content').innerHTML = '';
+    return;
+  }
+
+  await loadDashboardAuth();
+
+  bindFilters();
+  renderSkeleton(8);
+
+  const cached = loadFromCache();
+  if (cached){
+    applyData(cached, true);
+  } else {
+    setStatus('ok','Loading…');
+  }
+
+  refresh(false);
+  setInterval(() => refresh(false), CONFIG.AUTO_REFRESH_MS);
+}
+
+startDashboard().catch(err => showBanner('err', 'Page error: ' + (err && err.message || err)));
+</script>
+</body>
+</html>
