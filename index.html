@@ -32,6 +32,8 @@ body{font-family:var(--font-body);font-size:13px;-webkit-font-smoothing:antialia
 .app-shell{display:flex;min-height:100vh;background:var(--bg)}
 .sidebar{width:200px;background:#08090d;border-right:1px solid var(--bor);display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto}
 .sb-header{padding:18px 16px;border-bottom:0.5px solid var(--bor);display:flex;align-items:center;gap:10px}
+.sidebar-close{display:none;margin-left:auto;background:transparent;border:none;color:var(--mut);cursor:pointer;padding:6px;border-radius:6px;align-items:center;justify-content:center}
+.sidebar-close:hover{color:var(--text);background:var(--sur2)}
 .sb-logo{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,#00E5C3 0%,#4D9FFF 100%);display:flex;align-items:center;justify-content:center;color:#001014;flex-shrink:0;box-shadow:0 4px 14px rgba(0,229,195,.28),inset 0 1px 0 rgba(255,255,255,.14)}
 .sb-logo svg{width:18px;height:18px;stroke:#001014;fill:none;stroke-width:2}
 .sb-title{font-family:'Quicksand',sans-serif;font-size:16px;font-weight:700;color:#fff;line-height:1.15}
@@ -211,8 +213,135 @@ input.inp:focus,select.inp:focus{border-color:var(--acc)}
   .sidebar{position:fixed;left:0;top:0;bottom:0;z-index:200;transform:translateX(-100%);width:230px;box-shadow:0 4px 20px rgba(0,0,0,.4);transition:transform .2s ease}
   .sidebar.open{transform:translateX(0)}
   .hamburger{display:inline-flex}
+  .sidebar-close{display:inline-flex}
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+ * VALIA PAGE  (added — nothing above this comment was modified)
+ * ══════════════════════════════════════════════════════════════════════ */
+.valia-head{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:16px}
+.valia-stats{display:flex;gap:8px;flex-wrap:wrap}
+.vstat{background:var(--sur);border:0.5px solid var(--bor);border-radius:8px;padding:8px 14px;min-width:96px}
+.vstat-l{font-size:9px;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.vstat-v{font-family:var(--font-mono);font-size:17px;font-weight:600;line-height:1}
+.vstat.done .vstat-v{color:var(--grn)}
+.vstat.part .vstat-v{color:var(--amb)}
+.vstat.none .vstat-v{color:var(--mut)}
+.valia-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+.valia-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:16px;align-items:start}
+.vcard{background:var(--sur);border:0.5px solid var(--bor);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;transition:border-color .2s ease,transform .15s ease;cursor:pointer}
+.vcard:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+.vcard:hover{border-color:rgba(0,229,195,.4);transform:translateY(-2px)}
+.vcard-thumb{position:relative;display:block;aspect-ratio:16/9;background:#000;overflow:hidden;text-decoration:none}
+.vcard-thumb img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .35s ease}
+.vcard:hover .vcard-thumb img{transform:scale(1.04)}
+.vcard-play{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,rgba(0,0,0,0) 45%,rgba(0,0,0,.6) 100%);opacity:.92;transition:opacity .2s}
+.vcard-thumb:hover .vcard-play{opacity:1}
+.vcard-play svg{width:48px;height:48px;filter:drop-shadow(0 3px 12px rgba(0,0,0,.7))}
+.vcard-thumb:focus-visible{outline:2px solid var(--teal);outline-offset:-2px}
+.vcard-id{position:absolute;left:9px;bottom:9px;font-family:var(--font-mono);font-size:10px;color:#fff;background:rgba(0,0,0,.7);padding:3px 8px;border-radius:5px;letter-spacing:.02em}
+.vcard-prog{position:absolute;right:9px;top:9px;font-family:var(--font-mono);font-size:10px;padding:3px 9px;border-radius:20px;background:rgba(0,0,0,.7)}
+.vcard-prog.full{color:var(--grn);border:0.5px solid rgba(24,201,122,.45)}
+.vcard-prog.part{color:var(--amb);border:0.5px solid rgba(245,166,35,.45)}
+.vcard-prog.zero{color:var(--mut);border:0.5px solid var(--bor)}
+.vcard-url{padding:10px 14px;border-bottom:0.5px solid var(--bor);font-family:var(--font-mono);font-size:10px;word-break:break-all;line-height:1.5;color:var(--acc)}
+.vcard-url a{color:var(--acc);text-decoration:none}
+.vcard-url a:hover{text-decoration:underline}
+.vcard-body{padding:2px 14px 14px}
+
+.vsec{padding-top:13px}
+.vsec-h{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px;padding-bottom:6px;border-bottom:1px solid var(--bor)}
+.vsec-name{font-family:var(--font-display);font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.vsec-name::before{content:'';width:3px;height:13px;border-radius:2px;background:currentColor}
+.vsec.c0 .vsec-name{color:var(--acc)}
+.vsec.c1 .vsec-name{color:var(--teal)}
+.vsec.c2 .vsec-name{color:var(--pur)}
+.vsec.c3 .vsec-name{color:var(--amb)}
+.vsec.c4 .vsec-name{color:var(--grn)}
+.vsec.c5 .vsec-name{color:var(--red)}
+.vsec-badge{font-family:var(--font-mono);font-size:9px;color:var(--mut);background:var(--sur2);padding:2px 8px;border-radius:20px;white-space:nowrap}
+.vsec.is-empty .vsec-badge{color:var(--amb)}
+.vfacts{display:grid;grid-template-columns:1fr;gap:1px;background:var(--bor);border-radius:8px;overflow:hidden}
+.vfact{display:grid;grid-template-columns:106px 1fr;gap:10px;background:var(--sur);padding:7px 11px;align-items:start}
+.vfact dt{font-size:9px;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;padding-top:2px;line-height:1.4}
+.vfact dd{font-size:11.5px;color:var(--text);line-height:1.45}
+.vfact dd.none{color:#3a3f52;font-style:italic}
+
+.vempty{text-align:center;padding:64px 20px;color:var(--mut)}
+.vempty h3{font-family:var(--font-display);font-size:15px;color:var(--text);margin-bottom:7px}
+.vempty p{font-size:12px;line-height:1.65;max-width:470px;margin:0 auto}
+.vempty code{font-family:var(--font-mono);font-size:11px;background:var(--sur2);border:0.5px solid var(--bor);padding:1px 5px;border-radius:4px}
+@media(max-width:640px){.valia-grid{grid-template-columns:1fr}.vfact{grid-template-columns:88px 1fr}}
+
+/* ── VALIA popup — deliberately larger than .modal (960px / 720px) ── */
+.vmodal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(5px);z-index:120;display:none;align-items:center;justify-content:center;padding:20px}
+.vmodal-backdrop.open{display:flex}
+.vmodal{background:var(--sur);border:0.5px solid var(--bor);border-radius:16px;max-width:1240px;width:100%;height:min(880px,92vh);max-height:92vh;overflow:hidden;display:grid;grid-template-columns:1.15fr 1fr;grid-template-rows:minmax(0,1fr);box-shadow:0 30px 80px rgba(0,0,0,.6)}
+@media(max-width:900px){.vmodal{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr);height:92vh}}
+.vmodal-left{background:#000;display:flex;flex-direction:column;min-width:0;min-height:0;position:relative}
+.vmodal-player{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;background:#000}
+.vmodal-player iframe{width:100%;height:100%;border:0;display:block}
+.vmodal-meta{background:var(--sur);border-top:0.5px solid var(--bor);padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.vmodal-meta .vm-url{flex:1;min-width:0;font-family:var(--font-mono);font-size:10.5px;color:var(--acc);word-break:break-all;text-decoration:none}
+.vmodal-meta .vm-url:hover{text-decoration:underline}
+.vmodal-right{padding:22px 24px;overflow-y:auto;display:flex;flex-direction:column;gap:18px;scrollbar-width:thin;scrollbar-color:var(--bor) transparent}
+.vmodal-right::-webkit-scrollbar{width:9px}
+.vmodal-right::-webkit-scrollbar-thumb{background:var(--bor);border-radius:9px;border:2px solid var(--sur)}
+.vmodal-hd{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.vmodal-t{font-family:var(--font-display);font-size:16px;font-weight:600;color:var(--text);letter-spacing:-.01em}
+.vmodal-sub{font-family:var(--font-mono);font-size:10.5px;color:var(--mut);margin-top:4px}
+.vmodal-close{background:var(--sur2);border:0.5px solid var(--bor);color:var(--text);width:32px;height:32px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.vmodal-close:hover{border-color:var(--red);color:var(--red)}
+.vmsec-h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:11px;padding-bottom:8px;border-bottom:1.5px solid var(--bor)}
+.vmsec-name{font-family:var(--font-display);font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;display:flex;align-items:center;gap:9px}
+.vmsec-name::before{content:'';width:4px;height:15px;border-radius:2px;background:currentColor}
+.vmsec.c0 .vmsec-name,.vmsec.c0 .vmsec-h{color:var(--acc)}
+.vmsec.c1 .vmsec-name,.vmsec.c1 .vmsec-h{color:var(--teal)}
+.vmsec.c2 .vmsec-name{color:var(--pur)}
+.vmsec.c3 .vmsec-name{color:var(--amb)}
+.vmsec.c0 .vmsec-h{border-bottom-color:rgba(77,159,255,.35)}
+.vmsec.c1 .vmsec-h{border-bottom-color:rgba(0,229,195,.35)}
+.vmfacts{display:grid;grid-template-columns:1fr;gap:1px;background:var(--bor);border-radius:9px;overflow:hidden}
+.vmfact{display:grid;grid-template-columns:124px 1fr;gap:12px;background:var(--sur);padding:10px 13px;align-items:start}
+.vmfact dt{font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.6px;padding-top:2px;line-height:1.4}
+.vmfact dd{font-size:13px;color:var(--text);line-height:1.5}
+.vmfact dd.none{color:#3a3f52;font-style:italic}
+
+/* ---- Google Sign-In + admin panel ------------------------------------- */
+.gsi-wrap{display:flex;justify-content:center;padding:6px 0 2px;min-height:44px}
+.login-spin{font-size:11px;color:var(--mut);text-align:center;padding:10px 0}
+.user-chip{display:flex;align-items:center;gap:8px;padding:5px 10px;border:0.5px solid var(--bor);border-radius:999px;background:var(--sur2);font-size:11px;color:var(--mut);white-space:nowrap}
+.user-chip b{color:var(--text);font-weight:600}
+.user-chip .role-tag{font-size:9px;text-transform:uppercase;letter-spacing:.6px;font-weight:700;color:var(--acc)}
+.admin-modal{background:var(--sur);border:0.5px solid var(--bor);border-radius:14px;max-width:840px;width:100%;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.5)}
+.admin-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;border-bottom:0.5px solid var(--bor)}
+.admin-head h3{font-family:var(--font-display);font-size:16px;font-weight:700;color:#fff;margin:0}
+.admin-head p{font-size:11px;color:var(--mut);margin:3px 0 0}
+.admin-body{padding:18px 20px;overflow:auto}
+.admin-add{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:12px;border:0.5px solid var(--bor);border-radius:10px;background:var(--sur2);margin-bottom:16px}
+.admin-add .inp{flex:1;min-width:180px}
+.admin-check{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--mut);cursor:pointer;user-select:none;white-space:nowrap}
+.admin-tbl{width:100%;border-collapse:collapse;font-size:12px}
+.admin-tbl th{text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:.7px;color:var(--mut);font-weight:700;padding:8px 10px;border-bottom:0.5px solid var(--bor)}
+.admin-tbl td{padding:8px 10px;border-bottom:0.5px solid var(--bor);color:var(--text);vertical-align:middle}
+.admin-tbl tr:last-child td{border-bottom:0}
+.admin-tbl .em{font-family:var(--font-mono,monospace);font-size:11px}
+.pill{display:inline-block;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:2px 7px;border-radius:999px}
+.pill-ext{background:rgba(255,179,71,.12);color:var(--amb,#ffb347);border:0.5px solid rgba(255,179,71,.3)}
+.pill-act{background:rgba(0,229,195,.1);color:var(--teal);border:0.5px solid rgba(0,229,195,.28)}
+.pill-rev{background:rgba(240,82,82,.1);color:var(--red);border:0.5px solid rgba(240,82,82,.3)}
+.pill-me{background:rgba(77,159,255,.12);color:var(--acc);border:0.5px solid rgba(77,159,255,.3)}
+.btn-danger{background:rgba(240,82,82,.1);color:var(--red);border-color:rgba(240,82,82,.3)}
+.btn-danger:hover{background:rgba(240,82,82,.18)}
+.btn-xs{padding:4px 9px;font-size:10px;border-radius:7px}
+.admin-msg{display:none;margin-bottom:12px;border-radius:9px;padding:9px 11px;font-size:11px}
+.admin-msg.show{display:block}
+.admin-msg.err{background:rgba(240,82,82,.08);border:0.5px solid rgba(240,82,82,.3);color:var(--red)}
+.admin-msg.ok{background:rgba(0,229,195,.08);border:0.5px solid rgba(0,229,195,.3);color:var(--teal)}
+.admin-sel{background:var(--sur);color:var(--text);border:0.5px solid var(--bor);border-radius:7px;padding:4px 7px;font-size:11px;font-family:inherit}
 </style>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 <div class="login-backdrop" id="loginBackdrop">
@@ -224,6 +353,18 @@ input.inp:focus,select.inp:focus{border-color:var(--acc)}
         <div class="login-sub">Use the email listed in the Authentication sheet.</div>
       </div>
     </div>
+    <div class="login-form" id="loginForm">
+      <div class="gsi-wrap"><div id="googleSignInBtn"></div></div>
+      <div class="login-spin" id="loginSpin" style="display:none">Checking access…</div>
+      <div class="login-error" id="loginError"></div>
+      <div class="login-note">Sign in with your <b>@gamedistrict.co</b> Google account. Access is granted per-user by an admin. Admins can sync; viewers can only view.</div>
+    </div>
+
+    <!-- --- LEGACY PASSWORD LOGIN (disabled) ------------------------------
+         Replaced by Google Sign-In. Kept for rollback: restoring it also
+         requires un-commenting the 'login' action in doPost and the
+         verifyLoginCredentials_ block in creative.gs.
+
     <form class="login-form" id="loginForm">
       <div>
         <label class="login-label" for="loginEmail">Email</label>
@@ -241,6 +382,9 @@ input.inp:focus,select.inp:focus{border-color:var(--acc)}
     </form>
   </div>
 </div>
+    ------------------------------------------------------------------- -->
+  </div>
+</div>
 
 <div class="app-shell auth-locked" id="appShell">
   <aside class="sidebar" id="sidebar">
@@ -250,6 +394,7 @@ input.inp:focus,select.inp:focus{border-color:var(--acc)}
         <div class="sb-title">Creative Analytics</div>
         <div class="sb-sub" id="sbGame">Loading…</div>
       </div>
+      <button class="sidebar-close" id="sidebarCloseBtn" type="button" aria-label="Close sidebar"><svg class="icn-lg" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
     <nav class="sb-nav">
       <div class="sb-group">Assets</div>
@@ -257,6 +402,9 @@ input.inp:focus,select.inp:focus{border-color:var(--acc)}
       <div class="sb-item" data-fmt="Video"><span class="sbi-l"><svg class="icn" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>Videos</span><span class="cnt" id="nav-count-Video">0</span></div>
       <div class="sb-item" data-fmt="Playable"><span class="sbi-l"><svg class="icn" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="1"/><path d="M9 12h6M12 9v6"/></svg>Playables</span><span class="cnt" id="nav-count-Playable">0</span></div>
       <div class="sb-item" data-fmt="Image"><span class="sbi-l"><svg class="icn" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>Images</span><span class="cnt" id="nav-count-Image">0</span></div>
+
+      <div class="sb-group">Creative Labels</div>
+      <div class="sb-item" data-page="valia"><span class="sbi-l"><svg class="icn" viewBox="0 0 24 24"><path d="M20.6 13.4L12 22l-9-9V4a1 1 0 0 1 1-1h8l8.6 8.6a1 1 0 0 1 0 1.4z"/><circle cx="7.5" cy="7.5" r="1.2"/></svg>VALIA</span><span class="cnt" id="nav-count-valia">0</span></div>
     </nav>
     <div class="sb-footer">
       <div><span class="sdot" id="sbDot"></span><span id="sbStatus">Loading…</span></div>
@@ -307,6 +455,9 @@ input.inp:focus,select.inp:focus{border-color:var(--acc)}
           <input type="date" id="customEnd" class="inp" />
         </span>
         <button class="btn btn-acc" id="syncBtn"><svg class="icn" id="syncIcn" viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>Sync Now</button>
+        <button class="btn btn-acc" id="adminBtn" style="display:none"><svg class="icn" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/></svg>Manage access</button>
+        <span class="user-chip" id="userChip" style="display:none"><b id="userChipName"></b><span class="role-tag" id="userChipRole"></span></span>
+        <button class="btn btn-xs" id="logoutBtn" style="display:none">Sign out</button>
       </div>
     </div>
 
@@ -315,7 +466,7 @@ input.inp:focus,select.inp:focus{border-color:var(--acc)}
       <div class="krow" id="kpis"></div>
       <div class="g2">
         <div class="cc"><div class="cc-t">Format Distribution</div><div class="cc-s">Creative count by format, not spend share</div><div class="cc-canvas-wrap"><canvas id="chart-format"></canvas></div></div>
-        <div class="cc"><div class="cc-t">Leaderboard</div><div class="cc-s">Top 10 creatives by spend</div><div class="cc-canvas-wrap"><canvas id="chart-top10"></canvas></div></div>
+        <div class="cc"><div class="cc-t">Leaderboard</div><div class="cc-s">Top assets by attributed spend</div><div class="cc-canvas-wrap"><canvas id="chart-top10"></canvas></div></div>
       </div>
       <div class="tabs" id="tabs">
         <div class="tab on" data-fmt="all">All<span class="cnt" id="count-all">0</span></div>
@@ -323,10 +474,41 @@ input.inp:focus,select.inp:focus{border-color:var(--acc)}
         <div class="tab" data-fmt="Playable"><span class="dot"></span>Playables<span class="cnt" id="count-Playable">0</span></div>
         <div class="tab" data-fmt="Image"><span class="dot"></span>Images<span class="cnt" id="count-Image">0</span></div>
       </div>
+
+      <div id="valiaPage" style="display:none">
+        <div class="valia-head">
+          <div class="valia-stats" id="valiaStats"></div>
+          <div class="valia-tools">
+            <input id="valiaSearch" class="inp" placeholder="Search labels, video ID…" />
+            <select id="valiaFilter" class="inp">
+              <option value="all">All videos</option>
+              <option value="labelled">Labelled only</option>
+              <option value="partial">Partially labelled</option>
+              <option value="none">Awaiting labels</option>
+            </select>
+            <button class="btn btn-acc" id="valiaRefresh"><svg class="icn" id="valiaRefreshIcn" viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>Reload</button>
+          </div>
+        </div>
+        <div id="valiaBanners"></div>
+        <div id="valiaContent"></div>
+      </div>
       <div id="content">
         <div class="skeleton-grid" id="skeleton"></div>
       </div>
     </div>
+  </div>
+</div>
+
+<div id="valiaModalBackdrop" class="vmodal-backdrop">
+  <div class="vmodal" role="dialog" aria-modal="true" aria-label="VALIA video labels">
+    <div class="vmodal-left">
+      <div class="vmodal-player" id="valiaPlayer"></div>
+      <div class="vmodal-meta">
+        <a class="vm-url" id="valiaModalUrl" href="#" target="_blank" rel="noopener"></a>
+        <button class="btn" id="valiaModalYt"><svg class="icn" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14L21 3"/></svg>Open on YouTube</button>
+      </div>
+    </div>
+    <div class="vmodal-right" id="valiaModalInfo"></div>
   </div>
 </div>
 
@@ -339,13 +521,21 @@ input.inp:focus,select.inp:focus{border-color:var(--acc)}
 
 <script>
 /* ============================================================================
- * CONFIG - API_URL is loaded from .env by loadEnvConfig().
+ * CONFIG
  * ========================================================================== */
 const CONFIG = {
   API_URL: 'https://script.google.com/macros/s/AKfycbz37HtcPPpEnKwuTfjgkVNkIvMZjWy6tAQDzYaufCNbbobmIJwzVlj37FNfoWmA7dtT/exec',
+
+  // OAuth 2.0 "Web application" Client ID from Google Cloud Console.
+  // This is PUBLIC by design — it is safe to commit and safe to serve from
+  // GitHub Pages. Security comes from the Authorized JavaScript origins on
+  // the client itself plus the server-side `aud` check in creative.gs.
+  // The SAME value must be set as the GOOGLE_CLIENT_ID Script Property.
+  GOOGLE_CLIENT_ID: '1012644058552-ds6q0th2mrbb433tg29r3rb0rf7av1po.apps.googleusercontent.com',
   SHEET: 'applovin_data',
   GOOGLE_SHEET: 'google_ads_data',
-  CACHE_KEY: 'creativeDashCache_v10_applovin_data',
+  GOOGLE_TOTALS_SHEET: 'google_ads_totals',
+  CACHE_KEY: 'creativeDashCache_v13_separate_sources',
   // doGet now only ever reads the small, pre-aggregated Asset_Wise_Data /
   // Asset_Wise_Daily tabs (see Code.gs), so a slow response almost always
   // means a real network/deployment problem, not a heavy sheet scan.
@@ -361,7 +551,8 @@ const PLAYABLE_THUMB_IMG = new URL('./Thumbnail.png', document.baseURI).href;
 const COLOR = { Video:'#9b72f5', Playable:'#00e5c3', Image:'#4d9fff', accent:'#4d9fff', ink3:'#606888', hairline:'rgba(255,255,255,.08)' };
 
 let CREATIVES = [];     // processed, deduped, attributed per-asset daily records
-let META = { game:'', refreshedAt:'' };
+let META = { game:'', appLovinRefreshedAt:'', googleRefreshedAt:'', currencyCode:'USD', accountTimeZone:'' };
+let GOOGLE_TOTALS = [];
 let activeFormat = 'all';
 let appliedDatePreset = 'all';
 let appliedSingleDate = '';
@@ -369,6 +560,85 @@ let _isFetching = false;
 let _reqSeq = 0;
 let _emptyTimer = null;
 let chartFormat = null, chartTop10 = null;
+/* ============================================================================
+ * AUTH STATE
+ *
+ * Google Sign-In gives the browser an ID token (a signed JWT). That token is
+ * NOT the session — it is posted once to Apps Script, which verifies it with
+ * Google, checks the allowlist, and returns the same opaque session token the
+ * dashboard already used. Only that session token is stored and replayed.
+ * ========================================================================== */
+let SESSION_TOKEN = '';
+let SESSION_ROLE  = '';
+let SESSION_EMAIL = '';
+let SESSION_NAME  = '';
+
+try {
+  SESSION_TOKEN = sessionStorage.getItem('dashSessionToken') || '';
+  SESSION_ROLE  = sessionStorage.getItem('dashSessionRole')  || '';
+  SESSION_EMAIL = sessionStorage.getItem('dashSessionEmail') || '';
+  SESSION_NAME  = sessionStorage.getItem('dashSessionName')  || '';
+} catch(e) {}
+
+function storeSession(data){
+  SESSION_TOKEN = data.token || '';
+  SESSION_ROLE  = data.role  || '';
+  SESSION_EMAIL = data.email || '';
+  SESSION_NAME  = data.name  || data.email || '';
+  try {
+    sessionStorage.setItem('dashSessionToken', SESSION_TOKEN);
+    sessionStorage.setItem('dashSessionRole',  SESSION_ROLE);
+    sessionStorage.setItem('dashSessionEmail', SESSION_EMAIL);
+    sessionStorage.setItem('dashSessionName',  SESSION_NAME);
+  } catch(e) {}
+}
+
+function clearSession(){
+  SESSION_TOKEN = ''; SESSION_ROLE = ''; SESSION_EMAIL = ''; SESSION_NAME = '';
+  try {
+    ['dashSessionToken','dashSessionRole','dashSessionEmail','dashSessionName']
+      .forEach(k => sessionStorage.removeItem(k));
+  } catch(e) {}
+}
+
+// Shared POST helper. text/plain keeps it a "simple" request so the browser
+// skips the CORS preflight, which Apps Script web apps cannot answer.
+async function apiPost(payload){
+  const res = await fetch(CONFIG.API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(payload)
+  });
+  const data = await res.json();
+  if (data && data.error === 'unauthorized'){
+    clearSession();
+    throw new Error('unauthorized');
+  }
+  if (data && data.error) throw new Error(data.error);
+  return data;
+}
+
+// Exchange a Google ID token for a dashboard session token.
+async function apiGoogleLogin(credential){
+  const data = await apiPost({ action: 'google_login', credential: credential });
+  if (!data.token) throw new Error('Login failed.');
+  storeSession(data);
+  return data;
+}
+
+async function apiLogout(){
+  const token = SESSION_TOKEN;
+  clearSession();
+  try { if (token) await apiPost({ action: 'logout', token: token }); } catch(e) {}
+}
+
+function apiAdmin(action, extra){
+  return apiPost(Object.assign({ action: action, token: SESSION_TOKEN }, extra || {}));
+}
+
+/* --- LEGACY PASSWORD LOGIN (disabled) --------------------------------------
+   Kept for rollback only. Nothing calls apiLogin() any more.
+
 let DASHBOARD_AUTH = { email: '', password: '' };
 
 // Secure session token (issued by Apps Script doPost 'login'). Held in memory
@@ -393,31 +663,7 @@ async function apiLogin(email, password){
   return data; // { token, role, email }
 }
 
-async function loadEnvConfig(){
-  try {
-    const response = await fetch('.env', { cache: 'no-store' });
-    if (!response.ok) return;
-
-    const text = await response.text();
-    text.split(/\r?\n/).forEach(line => {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith('#')) return;
-
-      const equalsAt = trimmed.indexOf('=');
-      if (equalsAt === -1) return;
-
-      const key = trimmed.slice(0, equalsAt).trim();
-      let value = trimmed.slice(equalsAt + 1).trim();
-      if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
-        value = value.slice(1, -1);
-      }
-
-      if (key === 'API_URL') CONFIG[key] = value;
-    });
-  } catch (e) {
-    // Browsers block fetch('.env') when this HTML is opened directly as file://.
-  }
-}
+--------------------------------------------------------------------------- */
 
 /* ---------------------------------------------------------------------------
  * Helpers
@@ -432,6 +678,14 @@ function ymd(d){
   const m=String(d.getMonth()+1).padStart(2,'0');
   const day=String(d.getDate()).padStart(2,'0');
   return d.getFullYear()+'-'+m+'-'+day;
+}
+function accountToday(){
+  if (!META.accountTimeZone) { const d=new Date(); d.setHours(0,0,0,0); return d; }
+  try {
+    const parts = new Intl.DateTimeFormat('en-US',{timeZone:META.accountTimeZone,year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
+    const get = type => Number(parts.find(p=>p.type===type).value);
+    return new Date(get('year'),get('month')-1,get('day'));
+  } catch(e) { const d=new Date(); d.setHours(0,0,0,0); return d; }
 }
 function addDaysToYmd(value, days){
   if (!value) return '';
@@ -592,6 +846,7 @@ function parseAppLovinDataRows(rows){
   rows.forEach(r => {
     const date = ymdCell(readField(r, 'Date') || readField(r, 'date'));
     const network = str(readField(r, 'Network') || readField(r, 'source')) || 'AppLovin';
+    const campaignId = str(readField(r, 'campaign_id') || readField(r, 'Campaign ID'));
     const creativeId = str(
       readField(r, 'Creative ID') ||
       readField(r, 'asset_id') ||
@@ -613,7 +868,9 @@ function parseAppLovinDataRows(rows){
 
     if (!creativeId || !name) return;
 
-    const key = (network + '|' + creativeId).toLowerCase();
+    const key = (network === 'Google Ads'
+      ? network + '|' + campaignId + '|' + creativeId
+      : network + '|' + creativeId).toLowerCase();
 
     if (!byCreative[key]) {
       byCreative[key] = {
@@ -630,6 +887,11 @@ function parseAppLovinDataRows(rows){
           readField(r, 'creative_set_id')
         ),
         campaigns: str(readField(r, 'Campaigns') || readField(r, 'campaigns')),
+        campaignId: campaignId,
+        campaignName: str(readField(r, 'campaign_name') || readField(r, 'Campaign Name')),
+        campaignSubtype: str(readField(r, 'campaign_subtype')),
+        campaignGoal: str(readField(r, 'campaign_goal')),
+        appId: str(readField(r, 'app_id')),
         platform: str(readField(r, 'Platforms') || readField(r, 'platform')),
         days: [],
       };
@@ -653,7 +915,9 @@ function parseAppLovinDataRows(rows){
       spend: num(readField(r, 'Spend') || readField(r, 'spend')),
       impressions: num(readField(r, 'Impressions') || readField(r, 'impressions')),
       clicks: num(readField(r, 'Clicks') || readField(r, 'clicks')),
+      interactions: num(readField(r, 'interactions') || readField(r, 'Interactions') || readField(r, 'Clicks') || readField(r, 'clicks')),
       installs: num(readField(r, 'Installs') || readField(r, 'installs')),
+      rowInstallRate: rate(readField(r, 'install_rate') || readField(r, 'Install Rate')),
       revenue: num(readField(r, 'Revenue')) || num(readField(r, 'Revenue D7')) || num(readField(r, 'D7 Revenue')),
       sales: num(readField(r, 'Sales')),
       roas7: rate(readField(r, 'D7 ROAS')) || rate(readField(r, 'ROAS D7')) || rate(readField(r, 'ROAS')),
@@ -718,60 +982,258 @@ function lockDashboard(message){
   if (message) showLoginError(message);
 }
 
+/* ============================================================================
+ * GOOGLE SIGN-IN FLOW
+ * ========================================================================== */
+let _authResolve = null;
+
+function setLoginBusy(busy){
+  const spin = document.getElementById('loginSpin');
+  const btn  = document.getElementById('googleSignInBtn');
+  if (spin) spin.style.display = busy ? 'block' : 'none';
+  if (btn)  btn.style.opacity  = busy ? '.4' : '1';
+}
+
+// Called by Google Identity Services with the signed ID token.
+function handleGoogleCredential(response){
+  const credential = response && response.credential;
+  if (!credential){ showLoginError('Google did not return a sign-in token.'); return; }
+
+  showLoginError('');
+  setLoginBusy(true);
+
+  apiGoogleLogin(credential)
+    .then(() => {
+      setLoginBusy(false);
+      applyRoleUI();
+      if (_authResolve){ const r = _authResolve; _authResolve = null; r(); }
+    })
+    .catch(err => {
+      setLoginBusy(false);
+      // Let the user pick a different account after a rejection.
+      try { google.accounts.id.disableAutoSelect(); } catch(e) {}
+      showLoginError(String(err && err.message || err));
+    });
+}
+
+// The GIS script is async/defer, so it may not be ready when this runs.
+function initGoogleSignIn(){
+  const target = document.getElementById('googleSignInBtn');
+
+  if (!CONFIG.GOOGLE_CLIENT_ID) {
+  showLoginError('Dashboard is not configured: CONFIG.GOOGLE_CLIENT_ID is not set.');
+  return;
+}
+
+  if (!(window.google && google.accounts && google.accounts.id)){
+    // The GIS <script> is async/defer — poll until it lands, give up at ~10s.
+    initGoogleSignIn._tries = (initGoogleSignIn._tries || 0) + 1;
+    if (initGoogleSignIn._tries > 100){
+      showLoginError('Could not load Google Sign-In. Check your network or ad blocker.');
+      return;
+    }
+    setTimeout(initGoogleSignIn, 100);
+    return;
+  }
+  initGoogleSignIn._tries = 0;
+
+  google.accounts.id.initialize({
+    client_id: CONFIG.GOOGLE_CLIENT_ID,
+    callback: handleGoogleCredential,
+    auto_select: false,
+    cancel_on_tap_outside: true,
+    // NOTE: no `hd` hint here on purpose. Hinting the domain would hide the
+    // account picker for external guests, who are allowed by the allowlist.
+    // The domain rule is enforced server-side on the verified `hd` claim.
+  });
+
+  google.accounts.id.renderButton(target, {
+    theme: 'filled_black',
+    size: 'large',
+    shape: 'pill',
+    text: 'signin_with',
+    logo_alignment: 'left',
+    width: 300
+  });
+}
+
 function loadDashboardAuth(){
   return new Promise(resolve => {
-    const backdrop = document.getElementById('loginBackdrop');
-    const form = document.getElementById('loginForm');
-    const emailInput = document.getElementById('loginEmail');
-    const passwordInput = document.getElementById('loginPassword');
-    const submitBtn = form.querySelector('button[type="submit"]');
+    _authResolve = resolve;
 
-    try {
-      emailInput.value = localStorage.getItem('dashboardAuthEmail') || '';
-    } catch(e) {}
+    // A live session token from this tab? Skip the login screen; any expired
+    // or revoked token is caught by the first fetch and re-locks the UI.
+    if (SESSION_TOKEN){
+      applyRoleUI();
+      _authResolve = null;
+      resolve();
+      return;
+    }
 
-    backdrop.classList.add('show');
+    document.getElementById('loginBackdrop').classList.add('show');
     document.getElementById('appShell').classList.add('auth-locked');
-    emailInput.disabled = false;
-    passwordInput.disabled = false;
-    submitBtn.disabled = false;
-    submitBtn.textContent = 'Login';
-    setTimeout(() => (emailInput.value ? passwordInput : emailInput).focus(), 0);
-
-    form.onsubmit = event => {
-      event.preventDefault();
-
-      const email = str(emailInput.value).toLowerCase();
-      const password = String(passwordInput.value || '');
-
-      if (!email || !password) {
-        showLoginError('Enter both email and password.');
-        return;
-      }
-
-      DASHBOARD_AUTH = { email, password };
-      showLoginError('');
-      emailInput.disabled = true;
-      passwordInput.disabled = true;
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Checking...';
-
-      // Verify against Apps Script and get a session token BEFORE unlocking.
-      apiLogin(email, password)
-        .then(() => {
-          try { localStorage.setItem('dashboardAuthEmail', email); } catch(e) {}
-          resolve();
-        })
-        .catch(err => {
-          // Re-enable the form and show the server's reason.
-          emailInput.disabled = false;
-          passwordInput.disabled = false;
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Login';
-          showLoginError(String(err && err.message || err));
-        });
-    };
+    setLoginBusy(false);
+    initGoogleSignIn();
   });
+}
+
+/* ============================================================================
+ * ROLE-AWARE UI
+ * The server re-checks the role on every privileged action; hiding buttons is
+ * a convenience, never the control itself.
+ * ========================================================================== */
+function applyRoleUI(){
+  const isAdmin = SESSION_ROLE === 'admin';
+
+  const adminBtn = document.getElementById('adminBtn');
+  const syncBtn  = document.getElementById('syncBtn');
+  const chip     = document.getElementById('userChip');
+  const logout   = document.getElementById('logoutBtn');
+
+  if (adminBtn) adminBtn.style.display = isAdmin ? '' : 'none';
+  if (syncBtn)  syncBtn.style.display  = isAdmin ? '' : 'none';
+
+  if (chip && SESSION_EMAIL){
+    chip.style.display = '';
+    document.getElementById('userChipName').textContent = SESSION_NAME || SESSION_EMAIL;
+    document.getElementById('userChipRole').textContent = SESSION_ROLE || '';
+    chip.title = SESSION_EMAIL;
+  }
+  if (logout) logout.style.display = SESSION_EMAIL ? '' : 'none';
+}
+
+function signOut(){
+  try { google.accounts.id.disableAutoSelect(); } catch(e) {}
+  apiLogout().then(() => window.location.reload());
+}
+
+/* ============================================================================
+ * ADMIN PANEL
+ * ========================================================================== */
+function adminMsg(kind, text){
+  const el = document.getElementById('adminMsg');
+  if (!el) return;
+  el.textContent = text || '';
+  el.className = 'admin-msg' + (text ? ' show ' + kind : '');
+}
+
+function openAdminPanel(){
+  document.getElementById('adminBackdrop').classList.add('show');
+  adminMsg('', '');
+  document.getElementById('adminRows').innerHTML =
+    '<tr><td colspan="5" style="color:var(--mut)">Loading…</td></tr>';
+
+  apiAdmin('admin.list')
+    .then(renderAdminUsers)
+    .catch(err => handleAdminError(err));
+}
+
+function closeAdminPanel(){
+  document.getElementById('adminBackdrop').classList.remove('show');
+}
+
+function handleAdminError(err){
+  const message = String(err && err.message || err);
+  if (message === 'unauthorized'){
+    closeAdminPanel();
+    lockDashboard('Your session expired. Please sign in again.');
+    initGoogleSignIn();
+    return;
+  }
+  adminMsg('err', message);
+}
+
+function renderAdminUsers(data){
+  const rows = (data && data.users) || [];
+  const body = document.getElementById('adminRows');
+  const domain = (data && data.allowedDomain) || '';
+
+  document.getElementById('adminHeadSub').textContent = domain
+    ? 'Only these Google accounts can sign in. Non-@' + domain + ' accounts need the external flag.'
+    : 'Only these Google accounts can sign in.';
+
+  if (!rows.length){
+    body.innerHTML = '<tr><td colspan="5" style="color:var(--mut)">No users yet.</td></tr>';
+    return;
+  }
+
+  body.innerHTML = rows.map(user => {
+    const isMe = user.email === SESSION_EMAIL;
+    const revoked = user.status === 'revoked';
+    return '<tr>' +
+      '<td class="em">' + escapeHtml(user.email) +
+        (isMe ? ' <span class="pill pill-me">you</span>' : '') + '</td>' +
+      '<td><select class="admin-sel" data-role-for="' + escapeHtml(user.email) + '"' +
+        (isMe ? ' disabled title="You cannot change your own role"' : '') + '>' +
+        '<option value="viewer"' + (user.role === 'viewer' ? ' selected' : '') + '>Viewer</option>' +
+        '<option value="admin"'  + (user.role === 'admin'  ? ' selected' : '') + '>Admin</option>' +
+      '</select></td>' +
+      '<td>' + (user.external
+          ? '<span class="pill pill-ext">external</span>'
+          : '<span style="color:var(--mut);font-size:11px">domain</span>') + '</td>' +
+      '<td><span class="pill ' + (revoked ? 'pill-rev' : 'pill-act') + '">' +
+        escapeHtml(user.status) + '</span></td>' +
+      '<td style="text-align:right;white-space:nowrap">' +
+        (isMe ? '' :
+          '<button class="btn btn-xs" data-status-for="' + escapeHtml(user.email) + '" data-status="' +
+            (revoked ? 'active' : 'revoked') + '">' + (revoked ? 'Restore' : 'Revoke') + '</button> ' +
+          '<button class="btn btn-xs btn-danger" data-remove-for="' + escapeHtml(user.email) + '">Remove</button>'
+        ) +
+      '</td>' +
+    '</tr>';
+  }).join('');
+
+  body.querySelectorAll('[data-role-for]').forEach(sel => {
+    sel.addEventListener('change', () => {
+      adminMsg('', '');
+      apiAdmin('admin.setrole', { email: sel.dataset.roleFor, role: sel.value })
+        .then(result => { renderAdminUsers(result); adminMsg('ok', 'Role updated. That user must sign in again.'); })
+        .catch(err => { handleAdminError(err); openAdminPanel(); });
+    });
+  });
+
+  body.querySelectorAll('[data-status-for]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      adminMsg('', '');
+      apiAdmin('admin.setstatus', { email: btn.dataset.statusFor, status: btn.dataset.status })
+        .then(result => { renderAdminUsers(result); adminMsg('ok', 'Status updated.'); })
+        .catch(err => handleAdminError(err));
+    });
+  });
+
+  body.querySelectorAll('[data-remove-for]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const email = btn.dataset.removeFor;
+      if (!window.confirm('Remove ' + email + '? They will be signed out immediately.')) return;
+      adminMsg('', '');
+      apiAdmin('admin.remove', { email: email })
+        .then(result => { renderAdminUsers(result); adminMsg('ok', email + ' removed.'); })
+        .catch(err => handleAdminError(err));
+    });
+  });
+}
+
+function adminAddUser(){
+  const emailEl = document.getElementById('adminNewEmail');
+  const email = String(emailEl.value || '').trim().toLowerCase();
+  const role = document.getElementById('adminNewRole').value;
+  const external = document.getElementById('adminNewExternal').checked;
+
+  if (!email){ adminMsg('err', 'Enter an email address.'); return; }
+
+  adminMsg('', '');
+  const btn = document.getElementById('adminAddBtn');
+  btn.disabled = true;
+
+  apiAdmin('admin.add', { email: email, role: role, external: external ? 'TRUE' : 'FALSE' })
+    .then(result => {
+      emailEl.value = '';
+      document.getElementById('adminNewExternal').checked = false;
+      renderAdminUsers(result);
+      adminMsg('ok', email + ' can now sign in.');
+    })
+    .catch(err => handleAdminError(err))
+    .then(() => { btn.disabled = false; });
 }
 
 function cacheKeyForCurrentRange(){
@@ -814,9 +1276,9 @@ function fetchDataOnce(forceSync){
         })
         .then(data => {
           if (data && data.error === 'unauthorized') {
-            // token missing/expired → clear it so the caller forces re-login
-            SESSION_TOKEN = '';
-            try { sessionStorage.removeItem('dashSessionToken'); } catch(e){}
+            // Token missing, expired, or revoked by an admin → drop the whole
+            // session so the caller forces a fresh Google sign-in.
+            clearSession();
             throw new Error('unauthorized');
           }
           if (data && data.error) throw new Error(data.error);
@@ -825,29 +1287,31 @@ function fetchDataOnce(forceSync){
         });
     };
 
-    const fetchBothSheets = requestRange => Promise.all([
+    const fetchAllSheets = requestRange => Promise.all([
       fetchSheet(CONFIG.SHEET, forceSync, requestRange),
-      fetchSheet(CONFIG.GOOGLE_SHEET, false, requestRange).catch(err => {
-        console.warn('Google Ads data skipped:', err);
-        return { game: '', refreshedAt: '', rows: [] };
-      }),
+      fetchSheet(CONFIG.GOOGLE_SHEET, false, requestRange),
+      fetchSheet(CONFIG.GOOGLE_TOTALS_SHEET, false, requestRange),
     ]);
 
-    const buildPayload = ([appLovinData, googleAdsData]) => ({
+    const buildPayload = ([appLovinData, googleAdsData, googleTotals]) => ({
       game: appLovinData.game || googleAdsData.game || '',
-      refreshedAt: appLovinData.refreshedAt || googleAdsData.refreshedAt || '',
-      creatives: parseAppLovinDataRows(getTabRows(appLovinData).concat(getTabRows(googleAdsData))),
-      sourceSheet: CONFIG.SHEET + ' + ' + CONFIG.GOOGLE_SHEET,
+      appLovinRefreshedAt: appLovinData.refreshedAt || '',
+      googleRefreshedAt: googleTotals.refreshedAt || googleAdsData.refreshedAt || '',
+      appLovinCreatives: parseAppLovinDataRows(getTabRows(appLovinData)),
+      googleCreatives: parseAppLovinDataRows(getTabRows(googleAdsData)),
+      googleTotals: getTabRows(googleTotals),
+      currencyCode: str(readField(getTabRows(googleTotals)[0] || {}, 'currency_code')) || 'USD',
+      accountTimeZone: str(readField(getTabRows(googleTotals)[0] || {}, 'account_time_zone')),
       range,
     });
 
-    fetchBothSheets(apiRange)
+    fetchAllSheets(apiRange)
       .then(result => {
         const payload = buildPayload(result);
-        const hasSelectedDateRows = aggregate(payload.creatives, range.startDate, range.endDate)
+        const hasSelectedDateRows = aggregate(payload.appLovinCreatives.concat(payload.googleCreatives), range.startDate, range.endDate)
           .some(row => row.daysActive > 0);
         if (hasSelectedDateRows || (!range.startDate && !range.endDate)) return payload;
-        return fetchBothSheets({ startDate: '', endDate: '' }).then(buildPayload);
+        return fetchAllSheets({ startDate: '', endDate: '' }).then(buildPayload);
       })
       .then(payload => {
         clearTimeout(timeoutId);
@@ -872,7 +1336,7 @@ function fetchData(forceSync, attemptsLeft){
  * AGGREGATION for the selected date range
  * ------------------------------------------------------------------------- */
 function rangeForPreset(value){
-  const today = new Date(); today.setHours(0,0,0,0);
+  const today = accountToday();
   if (value === 'all') return { startDate:'', endDate:'' };
   if (value === 'today') return { startDate: ymd(today), endDate: ymd(today) };
   if (value === 'single'){
@@ -914,7 +1378,7 @@ function presetLabel(value){
 function aggregate(creatives, startDate, endDate){
   const serverFiltered = false;
   return creatives.map(c => {
-    let spend=0, impr=0, clicks=0, installs=0, revenue=0, sales=0;
+    let spend=0, impr=0, clicks=0, interactions=0, installs=0, revenue=0, sales=0;
     let roasW=0, roas7Sum=0, roas30Sum=0, iap7Sum=0, ad7Sum=0, daysActive=0;
     let ctrW=0, ctrSum=0, cpmW=0, cpmSum=0, cpiW=0, cpiSum=0;
     c.days.forEach(d => {
@@ -926,7 +1390,7 @@ function aggregate(creatives, startDate, endDate){
         if (endDate && rowDate > endDate) return;
       }
 
-      spend+=d.spend; impr+=d.impressions; clicks+=d.clicks;
+      spend+=d.spend; impr+=d.impressions; clicks+=d.clicks; interactions+=d.interactions;
       installs+=d.installs; revenue+=d.revenue; sales+=d.sales;
       const w = d.installs || 0;
       roasW += w;
@@ -943,6 +1407,8 @@ function aggregate(creatives, startDate, endDate){
     return {
       network:c.network, id:c.id, name:c.name, format:c.format, subformat:c.subformat,
       previewUrl:c.previewUrl, parent:c.parent, campaigns:c.campaigns, platform:c.platform,
+      campaignId:c.campaignId, campaignName:c.campaignName, campaignSubtype:c.campaignSubtype,
+      campaignGoal:c.campaignGoal, appId:c.appId,
       spend, impressions:impr, clicks, installs, revenue, sales, daysActive,
       ctr,
       conversionRate: impr ? installs/impr : 0,
@@ -963,7 +1429,7 @@ function updateLabels(){
   document.getElementById('pageSub').textContent =
     (META.game ? META.game + ' · ' : '') + presetLabel(appliedDatePreset) +
     (range.startDate && range.endDate ? ' (' + range.startDate + ' → ' + range.endDate + ')' : '');
-  document.getElementById('sbRefreshed').textContent = META.refreshedAt ? ('Refreshed ' + META.refreshedAt) : '—';
+  document.getElementById('sbRefreshed').textContent = 'AppLovin: ' + (META.appLovinRefreshedAt || '—') + ' · Google Ads: ' + (META.googleRefreshedAt || '—');
 }
 
 function render(){
@@ -978,6 +1444,7 @@ function render(){
   if (network !== 'all') rows = rows.filter(r => r.network === network);
   if (q) rows = rows.filter(r =>
     (r.name||'').toLowerCase().indexOf(q) !== -1 ||
+    (r.campaignName||'').toLowerCase().indexOf(q) !== -1 ||
     (r.campaigns||'').toLowerCase().indexOf(q) !== -1 ||
     (r.id||'').toLowerCase().indexOf(q) !== -1
   );
@@ -1008,17 +1475,35 @@ function render(){
   requestAnimationFrame(() => renderCharts(rows));
 }
 
+function filteredGoogleTotals(){
+  const range = rangeForPreset(appliedDatePreset);
+  return GOOGLE_TOTALS.filter(r => {
+    const d = ymdCell(readField(r, 'date'));
+    return (!range.startDate || d >= range.startDate) && (!range.endDate || d <= range.endDate);
+  });
+}
+function totalMetric(rows, name){ return rows.reduce((s,r)=>s+num(readField(r,name)),0); }
+function currency(n){ return '$' + Number(n||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function renderKpis(rows){
-  const totalSpend = rows.reduce((s,r)=>s+r.spend,0);
-  const totalInstalls = rows.reduce((s,r)=>s+r.installs,0);
+  const network = document.getElementById('network').value;
+  const appRows = rows.filter(r => r.network !== 'Google Ads');
+  const gt = network === 'AppLovin' ? [] : filteredGoogleTotals();
+  const totalSpend = appRows.reduce((s,r)=>s+r.spend,0) + totalMetric(gt,'spend');
+  const totalInstalls = appRows.reduce((s,r)=>s+r.installs,0) + totalMetric(gt,'installs');
+  const totalImpressions = appRows.reduce((s,r)=>s+r.impressions,0) + totalMetric(gt,'impressions');
+  const totalInteractions = appRows.reduce((s,r)=>s+r.clicks,0) + totalMetric(gt,'interactions');
   const blendedCpi = totalInstalls ? totalSpend/totalInstalls : 0;
-  const blendedCtr = (() => { const impr = rows.reduce((s,r)=>s+r.impressions,0); const clk = rows.reduce((s,r)=>s+r.clicks,0); return impr ? clk/impr : 0; })();
+  const blendedCtr = totalImpressions ? totalInteractions/totalImpressions : 0;
+  const blendedCpm = totalImpressions ? totalSpend/totalImpressions*1000 : 0;
+  const conversionRate = totalImpressions ? totalInstalls/totalImpressions : 0;
   const cards = [
     ['blue','Creatives in view', rows.length.toLocaleString()],
     ['green','Total spend', '$'+shortNum(totalSpend)],
     ['purple','Total installs', shortNum(totalInstalls)],
-    ['amber','Blended CPI', blendedCpi ? '$'+blendedCpi.toFixed(2) : '—'],
+    ['amber','Blended CPI', blendedCpi ? currency(blendedCpi) : '—'],
+    ['teal','Blended CPM', blendedCpm ? currency(blendedCpm) : '—'],
     ['blue','Blended CTR', blendedCtr ? (blendedCtr*100).toFixed(2)+'%' : '—'],
+    ['purple','Conversion', conversionRate ? (conversionRate*100).toFixed(2)+'%' : '—'],
   ];
   document.getElementById('kpis').innerHTML = cards.map(([c,l,v]) =>
     '<div class="kpi '+c+'"><div class="kpi-l">'+l+'</div><div class="kpi-v num">'+v+'</div></div>'
@@ -1267,7 +1752,7 @@ function cardHtml(r,i){
   // Playables get a blank, themed thumb (see thumbHtml + .is-playable CSS).
   const isPlayable = (r.format === 'Playable') || isPlayableUrl(cleanUrl(r.previewUrl || ''));
   const thumbClass = 'asset-thumb' + (isPlayable ? ' is-playable' : '') + (isHtmlCard(r) ? ' has-custom-thumb' : '');
-  return '<article class="asset-card" data-idx="'+i+'" style="animation-delay:'+Math.min(i*12,260)+'ms">'+
+  return '<article class="asset-card" data-idx="'+i+'" title="'+(r.network==='Google Ads'?'Google Ads asset metrics are directional and non-additive.':'')+'" style="animation-delay:'+Math.min(i*12,260)+'ms">'+
     (i<3 ? '<div class="asset-rank">#'+(i+1)+'</div>' : '') +
     '<div class="'+thumbClass+'">'+thumbHtml(r)+
       '<div class="asset-badges"><span class="asset-badge">'+network+'</span><span class="asset-badge fmt-'+r.format+'">'+r.format+'</span></div>'+
@@ -1275,8 +1760,8 @@ function cardHtml(r,i){
     '<div class="asset-body">'+
       '<div class="asset-name" title="'+escapeHtml(r.name)+'">'+escapeHtml(r.name||r.id)+'</div>'+
       '<div class="asset-kpis">'+
-        miniKpi('Spend','$'+shortNum(r.spend),false)+
-        miniKpi('Installs', r.installs ? shortNum(r.installs) : '—', !r.installs)+
+        miniKpi(r.network==='Google Ads'?'Attributed Spend':'Spend','$'+shortNum(r.spend),false)+
+        miniKpi(r.network==='Google Ads'?'Attributed Installs':'Installs', r.installs ? shortNum(r.installs) : '—', !r.installs)+
         miniKpi('CTR', r.ctr ? (r.ctr*100).toFixed(2)+'%' : '—', !r.ctr)+
         miniKpi('Conversion', r.conversionRate ? (r.conversionRate*100).toFixed(2)+'%' : '—', !r.conversionRate)+
         miniKpi('IPM', r.ipm ? r.ipm.toFixed(2) : '—', !r.ipm)+
@@ -1478,17 +1963,33 @@ function bindFilters(){
   });
 
   document.getElementById('syncBtn').addEventListener('click', () => refresh(true));
+
+  document.getElementById('adminBtn').addEventListener('click', openAdminPanel);
+  document.getElementById('adminClose').addEventListener('click', closeAdminPanel);
+  document.getElementById('adminAddBtn').addEventListener('click', adminAddUser);
+  document.getElementById('adminNewEmail').addEventListener('keydown', ev => {
+    if (ev.key === 'Enter') adminAddUser();
+  });
+  document.getElementById('adminBackdrop').addEventListener('click', ev => {
+    if (ev.target.id === 'adminBackdrop') closeAdminPanel();
+  });
+  document.getElementById('logoutBtn').addEventListener('click', signOut);
   document.getElementById('hamburgerBtn').addEventListener('click', () => document.getElementById('sidebar').classList.toggle('open'));
+  document.getElementById('sidebarCloseBtn').addEventListener('click', () => document.getElementById('sidebar').classList.remove('open'));
 }
 
 function applyData(payload, fromCache){
   unlockDashboard();
-  META = { game: payload.game, refreshedAt: payload.refreshedAt };
-  CREATIVES = payload.creatives;
+  applyRoleUI();
+  META = { game: payload.game, appLovinRefreshedAt: payload.appLovinRefreshedAt,
+    googleRefreshedAt: payload.googleRefreshedAt, currencyCode: payload.currencyCode || 'USD',
+    accountTimeZone: payload.accountTimeZone || '' };
+  CREATIVES = (payload.appLovinCreatives || []).concat(payload.googleCreatives || []);
+  GOOGLE_TOTALS = payload.googleTotals || [];
   updateLabels();
   clearBanner();
   if (!CREATIVES.length){
-    showBanner('warn', 'The API responded, but no rows matched the selected date range in applovin_data. Try "All sheet rows" or click "Sync Now".');
+    showBanner('warn', 'No AppLovin or Google Ads creative rows matched the selected date range.');
   }
   render();
   setStatus('ok', fromCache ? 'Showing cached data' : 'Live');
@@ -1529,14 +2030,9 @@ function refresh(forceIndicator){
     });
 }
 async function startDashboard(){
-  await loadEnvConfig();
-
   if (!CONFIG.API_URL || CONFIG.API_URL.indexOf('PASTE_') === 0){
     setStatus('err','Setup required');
-    const envHint = location.protocol === 'file:'
-      ? 'Open this dashboard through a local server so index.html can read .env.'
-      : 'Check that .env contains API_URL=... next to index.html.';
-    showBanner('err', envHint);
+    showBanner('err', 'Configure API_URL in the dashboard settings.');
     document.getElementById('content').innerHTML = '';
     return;
   }
@@ -1558,6 +2054,356 @@ async function startDashboard(){
 }
 
 startDashboard().catch(err => showBanner('err', 'Page error: ' + (err && err.message || err)));
+
+
+/* ============================================================================
+ * VALIA PAGE  (added — everything above is untouched)
+ * ----------------------------------------------------------------------------
+ * Talks to its OWN Apps Script deployment (the one bound to the VALIA sheet),
+ * separate from CONFIG.API_URL above. Read-only: it never writes anything.
+ * ========================================================================== */
+const VALIA_CONFIG = {
+  // Deployment URL of Valia_Dashboard_API.gs (Deploy → Web app → /exec).
+  API_URL: 'https://script.google.com/macros/s/AKfycby9Wb5dT2q2GY7aO87GaykpOOPW-e16C8cEx2kugjDeuvbHs3Ds2FH6k0vtK4nGeZV2nw/exec',
+  CACHE_KEY: 'valiaDashCache_v1',
+  FETCH_TIMEOUT_MS: 360000,
+};
+
+let VALIA_DATA = null;
+let _valiaLoading = false;
+let _valiaReq = 0;
+
+/* ---- helpers (namespaced so nothing above can be shadowed) ---- */
+function vEsc(s){
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => (
+    {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]
+  ));
+}
+function vYtId(url){
+  const t = String(url == null ? '' : url).trim();
+  if (/^[A-Za-z0-9_-]{11}$/.test(t)) return t;
+  const m = t.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?.*?v=|embed\/|shorts\/))([A-Za-z0-9_-]{11})/);
+  return m ? m[1] : null;
+}
+function vBanner(kind, msg){
+  document.getElementById('valiaBanners').innerHTML =
+    '<div class="banner ' + kind + '">' + vEsc(msg) + '</div>';
+}
+function vClearBanner(){ document.getElementById('valiaBanners').innerHTML = ''; }
+
+/* ---- page routing ---- */
+function valiaSetPage(on){
+  const q = sel => document.querySelector(sel);
+  const krow = q('.krow'), g2 = q('.g2'), tabs = q('#tabs'),
+        content = q('#content'), page = q('#valiaPage'),
+        actions = q('.main-actions'), title = q('.page-title'),
+        sub = q('#pageSub');
+
+  if (krow)    krow.style.display    = on ? 'none' : '';
+  if (g2)      g2.style.display      = on ? 'none' : '';
+  if (tabs)    tabs.style.display    = on ? 'none' : '';
+  if (content) content.style.display = on ? 'none' : '';
+  if (actions) actions.style.display = on ? 'none' : '';
+  if (page)    page.style.display    = on ? '' : 'none';
+
+  if (on){
+    if (title) title.textContent = 'VALIA — AI Video Labels';
+    if (sub) sub.textContent = 'Gemini-generated creative labels, joined on YouTube video ID';
+    document.querySelectorAll('[data-fmt]').forEach(b => b.classList.remove('on'));
+    document.querySelector('[data-page="valia"]').classList.add('on');
+    if (!VALIA_DATA && !_valiaLoading) valiaRefresh();
+  } else {
+    if (title) title.textContent = 'Creative Performance';
+    document.querySelector('[data-page="valia"]').classList.remove('on');
+    if (typeof updateLabels === 'function') updateLabels();
+  }
+}
+
+/* ---- fetch ---- */
+function valiaFetch(){
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), VALIA_CONFIG.FETCH_TIMEOUT_MS);
+
+  return fetch(VALIA_CONFIG.API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    signal: controller.signal,
+    cache: 'no-store',
+    body: JSON.stringify({ action: 'valia' })
+  })
+    .then(r => {
+      if (!r.ok) throw new Error('VALIA API returned HTTP ' + r.status);
+      return r.json();
+    })
+    .then(data => {
+      if (data && data.error) throw new Error(data.error);
+      return data;
+    })
+    .finally(() => clearTimeout(timer));
+}
+
+function valiaRefresh(){
+  const my = ++_valiaReq;
+  const btn = document.getElementById('valiaRefresh');
+  const icn = document.getElementById('valiaRefreshIcn');
+
+  if (!VALIA_CONFIG.API_URL || VALIA_CONFIG.API_URL.indexOf('PASTE_') === 0){
+    vBanner('err', 'Set VALIA_CONFIG.API_URL to your Valia Apps Script /exec URL.');
+    document.getElementById('valiaContent').innerHTML = '';
+    return;
+  }
+
+  _valiaLoading = true;
+  btn.disabled = true;
+  icn.classList.add('spinning');
+  vBanner('warn', 'Loading labels from the VALIA sheet…');
+  document.getElementById('valiaContent').innerHTML =
+    '<div class="skeleton-grid">' + '<div class="skeleton-card"></div>'.repeat(6) + '</div>';
+
+  valiaFetch()
+    .then(data => {
+      if (my !== _valiaReq) return;
+      VALIA_DATA = data;
+      try { localStorage.setItem(VALIA_CONFIG.CACHE_KEY, JSON.stringify(data)); } catch(e){}
+      vClearBanner();
+      valiaRender();
+    })
+    .catch(err => {
+      if (my !== _valiaReq) return;
+      vBanner('err', 'Could not load VALIA: ' + (err && err.message || err));
+      document.getElementById('valiaContent').innerHTML = '';
+    })
+    .finally(() => {
+      if (my !== _valiaReq) return;
+      _valiaLoading = false;
+      btn.disabled = false;
+      icn.classList.remove('spinning');
+    });
+}
+
+/* ---- render ---- */
+function valiaRender(){
+  if (!VALIA_DATA) return;
+  const sources = VALIA_DATA.sources || [];
+  const all = VALIA_DATA.videos || [];
+
+  const totalFields = sources.reduce((n, s) => n + s.fields.length, 0);
+  const filledOf = v => sources.reduce(
+    (n, s) => n + s.fields.filter(f => v.labels[s.tab] && v.labels[s.tab][f]).length, 0);
+
+  all.forEach(v => {
+    v._filled = filledOf(v);
+    v._total = totalFields;
+    v._state = v._filled === 0 ? 'none' : (v._filled === totalFields ? 'labelled' : 'partial');
+  });
+
+  const done = all.filter(v => v._state === 'labelled').length;
+  const part = all.filter(v => v._state === 'partial').length;
+  const none = all.filter(v => v._state === 'none').length;
+
+  document.getElementById('valiaStats').innerHTML =
+    '<div class="vstat"><div class="vstat-l">Videos</div><div class="vstat-v">' + all.length + '</div></div>' +
+    '<div class="vstat done"><div class="vstat-l">Labelled</div><div class="vstat-v">' + done + '</div></div>' +
+    '<div class="vstat part"><div class="vstat-l">Partial</div><div class="vstat-v">' + part + '</div></div>' +
+    '<div class="vstat none"><div class="vstat-l">Awaiting</div><div class="vstat-v">' + none + '</div></div>';
+
+  const navCount = document.getElementById('nav-count-valia');
+  if (navCount) navCount.textContent = all.length;
+
+  const mode = document.getElementById('valiaFilter').value;
+  const q = document.getElementById('valiaSearch').value.trim().toLowerCase();
+
+  let rows = all.filter(v => {
+    if (mode === 'labelled' && v._state !== 'labelled') return false;
+    if (mode === 'partial'  && v._state !== 'partial')  return false;
+    if (mode === 'none'     && v._state !== 'none')     return false;
+    if (!q) return true;
+    const hay = (v.videoId + ' ' + v.url + ' ' + sources.map(
+      s => s.fields.map(f => (v.labels[s.tab] || {})[f] || '').join(' ')).join(' ')).toLowerCase();
+    return hay.indexOf(q) !== -1;
+  });
+
+  rows.sort((a, b) => b._filled - a._filled || a.videoId.localeCompare(b.videoId));
+
+  const el = document.getElementById('valiaContent');
+
+  if (!rows.length){
+    el.innerHTML = all.length === 0
+      ? '<div class="vempty"><h3>No videos in the VALIA sheet</h3><p>The <code>video_url</code> columns are empty. Run the Google Ads sync script, then reload.</p></div>'
+      : '<div class="vempty"><h3>Nothing matches</h3><p>' + all.length + ' video(s) loaded, but none match the current filter or search.</p></div>';
+    return;
+  }
+
+  el.innerHTML = '<div class="valia-grid">' + rows.map(v => {
+    const id = v.videoId;
+    const thumb = 'https://i.ytimg.com/vi/' + id + '/hqdefault.jpg';
+    const cls = v._state === 'labelled' ? 'full' : (v._state === 'partial' ? 'part' : 'zero');
+
+    const secs = sources.map((s, i) => {
+      const vals = v.labels[s.tab] || {};
+      const filled = s.fields.filter(f => vals[f]).length;
+      return '' +
+        '<section class="vsec c' + (i % 6) + (filled === 0 ? ' is-empty' : '') + '">' +
+          '<div class="vsec-h">' +
+            '<div class="vsec-name">' + vEsc(s.tab) + '</div>' +
+            '<div class="vsec-badge">' + (filled === 0 ? 'awaiting labels' : filled + '/' + s.fields.length) + '</div>' +
+          '</div>' +
+          '<dl class="vfacts">' +
+            s.fields.map(f =>
+              '<div class="vfact">' +
+                '<dt>' + vEsc(f) + '</dt>' +
+                '<dd class="' + (vals[f] ? '' : 'none') + '">' + vEsc(vals[f] || 'not labelled yet') + '</dd>' +
+              '</div>').join('') +
+          '</dl>' +
+        '</section>';
+    }).join('');
+
+    return '' +
+      '<article class="vcard" data-vid="' + vEsc(id) + '" tabindex="0" role="button" ' +
+              'aria-label="Open labels for ' + vEsc(id) + '">' +
+        '<div class="vcard-thumb">' +
+          '<img src="' + thumb + '" alt="" loading="lazy" ' +
+               'onerror="this.src=\'https://i.ytimg.com/vi/' + id + '/mqdefault.jpg\'">' +
+          '<span class="vcard-play"><svg viewBox="0 0 68 48"><path fill="#f00" d="M66.5 7.7a8.6 8.6 0 0 0-6-6C55.2 0 34 0 34 0S12.8 0 7.5 1.7a8.6 8.6 0 0 0-6 6A89.5 89.5 0 0 0 0 24a89.5 89.5 0 0 0 1.5 16.3 8.6 8.6 0 0 0 6 6C12.8 48 34 48 34 48s21.2 0 26.5-1.7a8.6 8.6 0 0 0 6-6A89.5 89.5 0 0 0 68 24a89.5 89.5 0 0 0-1.5-16.3z"/><path fill="#fff" d="M27 34l18-10-18-10z"/></svg></span>' +
+          '<span class="vcard-id">' + vEsc(id) + '</span>' +
+          '<span class="vcard-prog ' + cls + '">' + v._filled + '/' + v._total + '</span>' +
+        '</div>' +
+        '<div class="vcard-url">' + vEsc(v.url) + '</div>' +
+        '<div class="vcard-body">' + secs + '</div>' +
+      '</article>';
+  }).join('') + '</div>';
+}
+
+/* ---- popup ---- */
+function valiaOpenModal(videoId){
+  if (!VALIA_DATA) return;
+  const v = (VALIA_DATA.videos || []).find(x => x.videoId === videoId);
+  if (!v) return;
+
+  const sources = VALIA_DATA.sources || [];
+  const total = sources.reduce((n, s) => n + s.fields.length, 0);
+  const filled = sources.reduce(
+    (n, s) => n + s.fields.filter(f => v.labels[s.tab] && v.labels[s.tab][f]).length, 0);
+
+  document.getElementById('valiaPlayer').innerHTML =
+    '<iframe src="https://www.youtube-nocookie.com/embed/' + v.videoId +
+    '?rel=0&modestbranding=1" title="YouTube video ' + vEsc(v.videoId) + '" ' +
+    'allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" ' +
+    'allowfullscreen></iframe>';
+
+  const urlEl = document.getElementById('valiaModalUrl');
+  urlEl.textContent = v.url;
+  urlEl.href = v.url;
+  document.getElementById('valiaModalYt').onclick = () => window.open(v.url, '_blank', 'noopener');
+
+  document.getElementById('valiaModalInfo').innerHTML =
+    '<div class="vmodal-hd">' +
+      '<div>' +
+        '<div class="vmodal-t">AI labels</div>' +
+        '<div class="vmodal-sub">' + vEsc(v.videoId) + ' · ' + filled + ' of ' + total + ' fields labelled</div>' +
+      '</div>' +
+      '<button class="vmodal-close" id="valiaModalClose" aria-label="Close">✕</button>' +
+    '</div>' +
+    sources.map((s, i) => {
+      const vals = v.labels[s.tab] || {};
+      const n = s.fields.filter(f => vals[f]).length;
+      return '<section class="vmsec c' + (i % 4) + '">' +
+        '<div class="vmsec-h">' +
+          '<div class="vmsec-name">' + vEsc(s.tab) + '</div>' +
+          '<div class="vsec-badge">' + (n === 0 ? 'awaiting labels' : n + '/' + s.fields.length) + '</div>' +
+        '</div>' +
+        '<dl class="vmfacts">' +
+          s.fields.map(f =>
+            '<div class="vmfact">' +
+              '<dt>' + vEsc(f) + '</dt>' +
+              '<dd class="' + (vals[f] ? '' : 'none') + '">' + vEsc(vals[f] || 'not labelled yet') + '</dd>' +
+            '</div>').join('') +
+        '</dl>' +
+      '</section>';
+    }).join('');
+
+  document.getElementById('valiaModalClose').addEventListener('click', valiaCloseModal);
+  document.getElementById('valiaModalBackdrop').classList.add('open');
+}
+
+function valiaCloseModal(){
+  document.getElementById('valiaModalBackdrop').classList.remove('open');
+  // Unmount the iframe so audio stops when the popup closes.
+  document.getElementById('valiaPlayer').innerHTML = '';
+}
+
+/* ---- wiring ---- */
+(function valiaInit(){
+  try {
+    const cached = localStorage.getItem(VALIA_CONFIG.CACHE_KEY);
+    if (cached) VALIA_DATA = JSON.parse(cached);
+  } catch(e){}
+
+  document.querySelector('[data-page="valia"]')
+      .addEventListener('click', () => {
+        valiaSetPage(true);
+        document.getElementById('sidebar').classList.remove('open');
+      });
+
+  // Additive: the existing [data-fmt] handler still runs; this just returns
+  // the shell to the assets page.
+  document.querySelectorAll('[data-fmt]').forEach(b =>
+      b.addEventListener('click', () => valiaSetPage(false)));
+
+  document.getElementById('valiaContent').addEventListener('click', e => {
+    const card = e.target.closest('.vcard');
+    if (card) valiaOpenModal(card.dataset.vid);
+  });
+  document.getElementById('valiaContent').addEventListener('keydown', e => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const card = e.target.closest('.vcard');
+    if (card){ e.preventDefault(); valiaOpenModal(card.dataset.vid); }
+  });
+  document.getElementById('valiaModalBackdrop').addEventListener('click', e => {
+    if (e.target.id === 'valiaModalBackdrop') valiaCloseModal();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') valiaCloseModal();
+  });
+
+  document.getElementById('valiaRefresh').addEventListener('click', valiaRefresh);
+  document.getElementById('valiaSearch').addEventListener('input', valiaRender);
+  document.getElementById('valiaFilter').addEventListener('change', valiaRender);
+
+  if (VALIA_DATA){
+    const n = document.getElementById('nav-count-valia');
+    if (n) n.textContent = (VALIA_DATA.videos || []).length;
+  }
+})();
 </script>
+<div class="modal-backdrop" id="adminBackdrop">
+  <div class="admin-modal">
+    <div class="admin-head">
+      <div>
+        <h3>Dashboard access</h3>
+        <p id="adminHeadSub">Only these Google accounts can sign in.</p>
+      </div>
+      <button class="btn btn-xs" id="adminClose">Close</button>
+    </div>
+    <div class="admin-body">
+      <div class="admin-msg" id="adminMsg"></div>
+      <div class="admin-add">
+        <input class="inp" id="adminNewEmail" type="email" placeholder="name@gamedistrict.co" />
+        <select class="inp" id="adminNewRole">
+          <option value="viewer">Viewer</option>
+          <option value="admin">Admin</option>
+        </select>
+        <label class="admin-check" title="Allow a Google account outside the company domain (e.g. a contractor on gmail.com).">
+          <input type="checkbox" id="adminNewExternal" /> External guest
+        </label>
+        <button class="btn btn-acc" id="adminAddBtn">Add user</button>
+      </div>
+      <table class="admin-tbl">
+        <thead><tr><th>Email</th><th>Role</th><th>Access</th><th>Status</th><th></th></tr></thead>
+        <tbody id="adminRows"><tr><td colspan="5" style="color:var(--mut)">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
 </body>
 </html>
