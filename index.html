@@ -1618,30 +1618,12 @@ function renderGrid(rows){
     if (_gridRows[idx]) openModal(_gridRows[idx]);
   });
 
-  appendCardBatch();  // first batch, synchronously (instant paint)
-
-  const sentinel = document.getElementById('gridSentinel');
-
-  // Fallback for old browsers — draw everything up front.
-  if (!('IntersectionObserver' in window)){
-    while (_gridDrawn < _gridRows.length) appendCardBatch();
-    sentinel.style.display = 'none';
-    return;
-  }
-
-  _gridObserver = new IntersectionObserver(entries => {
-    entries.forEach(entry => {
-      if (!entry.isIntersecting) return;
-      appendCardBatch();
-      if (_gridDrawn >= _gridRows.length){
-        try { _gridObserver.disconnect(); } catch(e){}
-        _gridObserver = null;
-        sentinel.style.display = 'none';
-      }
-    });
-  }, { root: document.querySelector('.page-content'), rootMargin: '600px 0px', threshold: 0.01 });
-
-  _gridObserver.observe(sentinel);
+  // Render every batch now so the visible cards always match the sidebar and
+  // tab counts. The previous observer watched .page-content even when the
+  // document was the actual scroll container, so it commonly stopped after
+  // two batches (48 cards).
+  while (_gridDrawn < _gridRows.length) appendCardBatch();
+  document.getElementById('gridSentinel').style.display = 'none';
 }
 
 function money(n, digits){
