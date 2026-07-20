@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+<head>s
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Creative Performance — Creative Analytics BI</title>
@@ -534,11 +534,9 @@ const CONFIG = {
   GOOGLE_CLIENT_ID: '1012644058552-ds6q0th2mrbb433tg29r3rb0rf7av1po.apps.googleusercontent.com',
   SHEET: 'applovin_data',
   GOOGLE_SHEET: 'google_ads_data',
-  GOOGLE_TOTALS_SHEET: 'google_ads_totals',
-  CACHE_KEY: 'creativeDashCache_v13_separate_sources',
-  // doGet now only ever reads the small, pre-aggregated Asset_Wise_Data /
-  // Asset_Wise_Daily tabs (see Code.gs), so a slow response almost always
-  // means a real network/deployment problem, not a heavy sheet scan.
+  CACHE_KEY: 'creativeDashCache_v15_google_asset_id_names',
+  // The API reads the pre-aggregated applovin_data and google_ads_data tabs,
+  // so a slow response almost always means a network/deployment problem.
   // Keep this modest and retry once instead of one long hung wait.
   FETCH_TIMEOUT_MS: 360000,
   FETCH_RETRIES: 1,
@@ -552,7 +550,6 @@ const COLOR = { Video:'#9b72f5', Playable:'#00e5c3', Image:'#4d9fff', accent:'#4
 
 let CREATIVES = [];     // processed, deduped, attributed per-asset daily records
 let META = { game:'', appLovinRefreshedAt:'', googleRefreshedAt:'', currencyCode:'USD', accountTimeZone:'' };
-let GOOGLE_TOTALS = [];
 let activeFormat = 'all';
 let appliedDatePreset = 'all';
 let appliedSingleDate = '';
@@ -856,15 +853,16 @@ function parseAppLovinDataRows(rows){
       readField(r, 'creative_set_id') ||
       readField(r, 'creative_set_ids')
     );
-    const name = str(
+    const assetName = str(
       readField(r, 'Creative Name') ||
       readField(r, 'asset_name') ||
       readField(r, 'creative_name') ||
       readField(r, 'Creative Set Name') ||
       readField(r, 'creative_set_name')
     ) || creativeId;
+    const name = network === 'Google Ads' ? creativeId : assetName;
     const previewUrl = cleanUrl(readField(r, 'Preview URL') || readField(r, 'preview_url') || readField(r, 'Asset URL') || readField(r, 'asset_url'));
-    const inferredFormat = inferFormat(name, previewUrl, readField(r, 'Format') || readField(r, 'format'), readField(r, 'Sub-format') || readField(r, 'sub_format'));
+    const inferredFormat = inferFormat(assetName, previewUrl, readField(r, 'Format') || readField(r, 'format'), readField(r, 'Sub-format') || readField(r, 'sub_format'));
 
     if (!creativeId || !name) return;
 
@@ -877,6 +875,7 @@ function parseAppLovinDataRows(rows){
         network,
         id: creativeId,
         name,
+        assetName,
         format: inferredFormat,
         subformat: str(readField(r, 'Sub-format') || readField(r, 'sub_format')),
         previewUrl: previewUrl,
@@ -1290,18 +1289,16 @@ function fetchDataOnce(forceSync){
     const fetchAllSheets = requestRange => Promise.all([
       fetchSheet(CONFIG.SHEET, forceSync, requestRange),
       fetchSheet(CONFIG.GOOGLE_SHEET, false, requestRange),
-      fetchSheet(CONFIG.GOOGLE_TOTALS_SHEET, false, requestRange),
     ]);
 
-    const buildPayload = ([appLovinData, googleAdsData, googleTotals]) => ({
+    const buildPayload = ([appLovinData, googleAdsData]) => ({
       game: appLovinData.game || googleAdsData.game || '',
       appLovinRefreshedAt: appLovinData.refreshedAt || '',
-      googleRefreshedAt: googleTotals.refreshedAt || googleAdsData.refreshedAt || '',
+      googleRefreshedAt: googleAdsData.refreshedAt || '',
       appLovinCreatives: parseAppLovinDataRows(getTabRows(appLovinData)),
       googleCreatives: parseAppLovinDataRows(getTabRows(googleAdsData)),
-      googleTotals: getTabRows(googleTotals),
-      currencyCode: str(readField(getTabRows(googleTotals)[0] || {}, 'currency_code')) || 'USD',
-      accountTimeZone: str(readField(getTabRows(googleTotals)[0] || {}, 'account_time_zone')),
+      currencyCode: 'USD',
+      accountTimeZone: '',
       range,
     });
 
@@ -1405,7 +1402,7 @@ function aggregate(creatives, startDate, endDate){
     const cpm = impr ? (spend/impr)*1000 : (cpmW ? cpmSum/cpmW : 0);
     const cpi = installs ? spend/installs : (cpiW ? cpiSum/cpiW : 0);
     return {
-      network:c.network, id:c.id, name:c.name, format:c.format, subformat:c.subformat,
+      network:c.network, id:c.id, name:c.name, assetName:c.assetName, format:c.format, subformat:c.subformat,
       previewUrl:c.previewUrl, parent:c.parent, campaigns:c.campaigns, platform:c.platform,
       campaignId:c.campaignId, campaignName:c.campaignName, campaignSubtype:c.campaignSubtype,
       campaignGoal:c.campaignGoal, appId:c.appId,
@@ -1444,6 +1441,7 @@ function render(){
   if (network !== 'all') rows = rows.filter(r => r.network === network);
   if (q) rows = rows.filter(r =>
     (r.name||'').toLowerCase().indexOf(q) !== -1 ||
+    (r.assetName||'').toLowerCase().indexOf(q) !== -1 ||
     (r.campaignName||'').toLowerCase().indexOf(q) !== -1 ||
     (r.campaigns||'').toLowerCase().indexOf(q) !== -1 ||
     (r.id||'').toLowerCase().indexOf(q) !== -1
@@ -1475,23 +1473,15 @@ function render(){
   requestAnimationFrame(() => renderCharts(rows));
 }
 
-function filteredGoogleTotals(){
-  const range = rangeForPreset(appliedDatePreset);
-  return GOOGLE_TOTALS.filter(r => {
-    const d = ymdCell(readField(r, 'date'));
-    return (!range.startDate || d >= range.startDate) && (!range.endDate || d <= range.endDate);
-  });
-}
-function totalMetric(rows, name){ return rows.reduce((s,r)=>s+num(readField(r,name)),0); }
 function currency(n){ return '$' + Number(n||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function renderKpis(rows){
-  const network = document.getElementById('network').value;
-  const appRows = rows.filter(r => r.network !== 'Google Ads');
-  const gt = network === 'AppLovin' ? [] : filteredGoogleTotals();
-  const totalSpend = appRows.reduce((s,r)=>s+r.spend,0) + totalMetric(gt,'spend');
-  const totalInstalls = appRows.reduce((s,r)=>s+r.installs,0) + totalMetric(gt,'installs');
-  const totalImpressions = appRows.reduce((s,r)=>s+r.impressions,0) + totalMetric(gt,'impressions');
-  const totalInteractions = appRows.reduce((s,r)=>s+r.clicks,0) + totalMetric(gt,'interactions');
+  // Both sources are already reduced to one asset/day row before reaching
+  // this point. Sum the currently selected rows so Google Ads follows the
+  // exact same date, network and search-filter behaviour as AppLovin.
+  const totalSpend = rows.reduce((s,r)=>s+r.spend,0);
+  const totalInstalls = rows.reduce((s,r)=>s+r.installs,0);
+  const totalImpressions = rows.reduce((s,r)=>s+r.impressions,0);
+  const totalInteractions = rows.reduce((s,r)=>s+r.clicks,0);
   const blendedCpi = totalInstalls ? totalSpend/totalInstalls : 0;
   const blendedCtr = totalImpressions ? totalInteractions/totalImpressions : 0;
   const blendedCpm = totalImpressions ? totalSpend/totalImpressions*1000 : 0;
@@ -1734,7 +1724,7 @@ function cardHtml(r,i){
   // Playables get a blank, themed thumb (see thumbHtml + .is-playable CSS).
   const isPlayable = (r.format === 'Playable') || isPlayableUrl(cleanUrl(r.previewUrl || ''));
   const thumbClass = 'asset-thumb' + (isPlayable ? ' is-playable' : '') + (isHtmlCard(r) ? ' has-custom-thumb' : '');
-  return '<article class="asset-card" data-idx="'+i+'" title="'+(r.network==='Google Ads'?'Google Ads asset metrics are directional and non-additive.':'')+'" style="animation-delay:'+Math.min(i*12,260)+'ms">'+
+  return '<article class="asset-card" data-idx="'+i+'" style="animation-delay:'+Math.min(i*12,260)+'ms">'+
     (i<3 ? '<div class="asset-rank">#'+(i+1)+'</div>' : '') +
     '<div class="'+thumbClass+'">'+thumbHtml(r)+
       '<div class="asset-badges"><span class="asset-badge">'+network+'</span><span class="asset-badge fmt-'+r.format+'">'+r.format+'</span></div>'+
@@ -1742,8 +1732,8 @@ function cardHtml(r,i){
     '<div class="asset-body">'+
       '<div class="asset-name" title="'+escapeHtml(r.name)+'">'+escapeHtml(r.name||r.id)+'</div>'+
       '<div class="asset-kpis">'+
-        miniKpi(r.network==='Google Ads'?'Attributed Spend':'Spend','$'+shortNum(r.spend),false)+
-        miniKpi(r.network==='Google Ads'?'Attributed Installs':'Installs', r.installs ? shortNum(r.installs) : '—', !r.installs)+
+        miniKpi('Spend','$'+shortNum(r.spend),false)+
+        miniKpi('Installs', r.installs ? shortNum(r.installs) : '—', !r.installs)+
         miniKpi('CTR', r.ctr ? (r.ctr*100).toFixed(2)+'%' : '—', !r.ctr)+
         miniKpi('Conversion', r.conversionRate ? (r.conversionRate*100).toFixed(2)+'%' : '—', !r.conversionRate)+
         miniKpi('IPM', r.ipm ? r.ipm.toFixed(2) : '—', !r.ipm)+
@@ -1760,7 +1750,8 @@ function previewHtml(r){
 
   if (!url) {
     return '<div style="color:#666;text-align:center;padding:20px">' +
-      'No preview URL found for this asset in applovin_data.' +
+      'No preview URL found for this asset in ' +
+      (r.network === 'Google Ads' ? 'google_ads_data.' : 'applovin_data.') +
     '</div>';
   }
 
@@ -1967,7 +1958,6 @@ function applyData(payload, fromCache){
     googleRefreshedAt: payload.googleRefreshedAt, currencyCode: payload.currencyCode || 'USD',
     accountTimeZone: payload.accountTimeZone || '' };
   CREATIVES = (payload.appLovinCreatives || []).concat(payload.googleCreatives || []);
-  GOOGLE_TOTALS = payload.googleTotals || [];
   updateLabels();
   clearBanner();
   if (!CREATIVES.length){
