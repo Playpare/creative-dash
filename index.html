@@ -534,7 +534,7 @@ const CONFIG = {
   GOOGLE_CLIENT_ID: '1012644058552-ds6q0th2mrbb433tg29r3rb0rf7av1po.apps.googleusercontent.com',
   SHEET: 'applovin_data',
   GOOGLE_SHEET: 'google_ads_data',
-  CACHE_KEY: 'creativeDashCache_v15_google_asset_id_names',
+  CACHE_KEY: 'creativeDashCache_v16_google_playable_names',
   // The API reads the pre-aggregated applovin_data and google_ads_data tabs,
   // so a slow response almost always means a network/deployment problem.
   // Keep this modest and retry once instead of one long hung wait.
@@ -860,9 +860,11 @@ function parseAppLovinDataRows(rows){
       readField(r, 'Creative Set Name') ||
       readField(r, 'creative_set_name')
     ) || creativeId;
-    const name = network === 'Google Ads' ? creativeId : assetName;
     const previewUrl = cleanUrl(readField(r, 'Preview URL') || readField(r, 'preview_url') || readField(r, 'Asset URL') || readField(r, 'asset_url'));
     const inferredFormat = inferFormat(assetName, previewUrl, readField(r, 'Format') || readField(r, 'format'), readField(r, 'Sub-format') || readField(r, 'sub_format'));
+    // Google Ads normally uses the asset ID as its card label, but playable
+    // assets are more useful when identified by their creative/asset name.
+    const name = network === 'Google Ads' && inferredFormat !== 'Playable' ? creativeId : assetName;
 
     if (!creativeId || !name) return;
 
@@ -973,6 +975,8 @@ function showLoginError(message){
 function unlockDashboard(){
   document.getElementById('loginBackdrop').classList.remove('show');
   document.getElementById('appShell').classList.remove('auth-locked');
+  _googleLoginPending = false;
+  setLoginBusy(false);
 }
 
 function lockDashboard(message){
@@ -985,29 +989,42 @@ function lockDashboard(message){
  * GOOGLE SIGN-IN FLOW
  * ========================================================================== */
 let _authResolve = null;
+let _googleLoginPending = false;
 
-function setLoginBusy(busy){
+function setLoginBusy(busy, message){
   const spin = document.getElementById('loginSpin');
   const btn  = document.getElementById('googleSignInBtn');
-  if (spin) spin.style.display = busy ? 'block' : 'none';
-  if (btn)  btn.style.opacity  = busy ? '.4' : '1';
+  if (spin) {
+    spin.textContent = message || 'Checking access\u2026';
+    spin.style.display = busy ? 'block' : 'none';
+  }
+  if (btn) {
+    btn.style.opacity = busy ? '.4' : '1';
+    btn.style.pointerEvents = busy ? 'none' : 'auto';
+    btn.setAttribute('aria-busy', busy ? 'true' : 'false');
+  }
 }
 
 // Called by Google Identity Services with the signed ID token.
 function handleGoogleCredential(response){
   const credential = response && response.credential;
   if (!credential){ showLoginError('Google did not return a sign-in token.'); return; }
+  if (_googleLoginPending) return;
 
+  _googleLoginPending = true;
   showLoginError('');
-  setLoginBusy(true);
+  setLoginBusy(true, 'Checking access\u2026');
 
   apiGoogleLogin(credential)
     .then(() => {
-      setLoginBusy(false);
+      // Keep the control disabled until applyData() removes the login overlay.
+      // Otherwise the button appears active while the initial API fetch runs.
+      setLoginBusy(true, 'Loading dashboard\u2026');
       applyRoleUI();
       if (_authResolve){ const r = _authResolve; _authResolve = null; r(); }
     })
     .catch(err => {
+      _googleLoginPending = false;
       setLoginBusy(false);
       // Let the user pick a different account after a rejection.
       try { google.accounts.id.disableAutoSelect(); } catch(e) {}
@@ -1660,6 +1677,15 @@ function iconSvg(format){
 }
 function parseYouTubeId(url){ const m = url.match(/(?:v=|youtu\.be\/)([\w-]{11})/); return m ? m[1] : null; }
 
+function usesPlayableThumbnail(r){
+  // Preserve the existing AppLovin behavior: only its HTML cards use the
+  // custom thumbnail. Google Ads playables, including ZIP assets, use it too.
+  return isHtmlCard(r) || (
+    r.network === 'Google Ads' &&
+    (r.format === 'Playable' || isPlayableUrl(cleanUrl(r.previewUrl || '')))
+  );
+}
+
 function thumbHtml(r){
   const url = cleanUrl(r.previewUrl || '');
   const u = url.toLowerCase();
@@ -1668,8 +1694,8 @@ function thumbHtml(r){
   // (a same-height, themed placeholder) so nothing runs in the dashboard.
   // Clicking the card opens the modal, which shows an "Open in new tab" button.
   // Checked FIRST so a playable can never fall into the image/video branches.
-  if (isHtmlCard(r)) {
-    // Use the local custom image for .html cards only.
+  if (usesPlayableThumbnail(r)) {
+    // Use the local custom image for AppLovin HTML cards and Google playables.
     return '<img src="' + escapeHtml(PLAYABLE_THUMB_IMG) + '" alt="" loading="lazy" ' +
       'onerror="this.style.display=\'none\'">';
   }
@@ -1723,7 +1749,7 @@ function cardHtml(r,i){
   const network = r.network==='AppLovin' ? 'AL' : (r.network==='Google Ads' ? 'GG' : escapeHtml(r.network));
   // Playables get a blank, themed thumb (see thumbHtml + .is-playable CSS).
   const isPlayable = (r.format === 'Playable') || isPlayableUrl(cleanUrl(r.previewUrl || ''));
-  const thumbClass = 'asset-thumb' + (isPlayable ? ' is-playable' : '') + (isHtmlCard(r) ? ' has-custom-thumb' : '');
+  const thumbClass = 'asset-thumb' + (isPlayable ? ' is-playable' : '') + (usesPlayableThumbnail(r) ? ' has-custom-thumb' : '');
   return '<article class="asset-card" data-idx="'+i+'" style="animation-delay:'+Math.min(i*12,260)+'ms">'+
     (i<3 ? '<div class="asset-rank">#'+(i+1)+'</div>' : '') +
     '<div class="'+thumbClass+'">'+thumbHtml(r)+
@@ -1992,6 +2018,9 @@ function refresh(forceIndicator){
         lockDashboard(msg);
         loadDashboardAuth().then(() => refresh(forceIndicator));
       } else {
+        // Authentication succeeded, so do not strand the user behind the
+        // sign-in overlay merely because the first data request failed.
+        if (SESSION_TOKEN) unlockDashboard();
         showBanner('err', 'Could not refresh from the API: ' + msg);
       }
     })
