@@ -1,10 +1,28 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>s
+<head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Creative Performance — Creative Analytics BI</title>
-<script defer src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<!-- The page loads scripts from cdnjs and accounts.google.com, and renders
+     images/videos/iframes from URLs that come out of the sheets, so the origins
+     each resource type may come from are pinned here.
+     'unsafe-inline' is required for script-src only because the whole app is
+     one inline script block; dropping it means moving that block out to its own
+     .js file AND removing the inline onerror="…" handlers — a separate change. -->
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://accounts.google.com https://apis.google.com;
+  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com;
+  font-src https://fonts.gstatic.com data:;
+  img-src 'self' data: blob: https:;
+  media-src 'self' blob: https:;
+  frame-src https://www.youtube.com https://www.youtube-nocookie.com https://accounts.google.com;
+  connect-src 'self' https://script.google.com https://script.googleusercontent.com https://accounts.google.com;
+  base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self';">
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"
+        integrity="sha384-bs/nf9FbdNouRbMiFcrcZfLXYPKiPaGVGplVbv7dLGECccEXDW+S3zjqSKR5ZEaD"
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@500;600;700&family=Quicksand:wght@600;700&display=swap" rel="stylesheet">
@@ -109,6 +127,13 @@ input.inp:focus,select.inp:focus{border-color:var(--acc)}
 
 /* ── ASSET GRID / CARDS ── */
 .asset-grid{display:grid;grid-template-columns:repeat(auto-fill,260px);gap:14px;align-items:start;justify-content:start}
+/* Lazy-load trigger for renderGrid(). Needs a real height: a zero-height target
+   makes both the IntersectionObserver result and the getBoundingClientRect()
+   top-up check unreliable. Invisible either way. */
+.grid-sentinel{width:100%;height:1px;pointer-events:none}
+/* Keyboard focus for the sidebar items and format tabs, which are divs acting
+   as buttons (see role/tabindex in the markup). */
+.sb-item:focus-visible,.tab:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 .asset-table-wrap{background:var(--sur);border:0.5px solid var(--bor);border-radius:12px;overflow:auto}
 .asset-table{width:100%;border-collapse:collapse;min-width:900px}
 .asset-table th,.asset-table td{padding:10px 12px;border-bottom:0.5px solid var(--bor);text-align:left;vertical-align:middle}
@@ -400,13 +425,13 @@ input.inp:focus,select.inp:focus{border-color:var(--acc)}
     </div>
     <nav class="sb-nav">
       <div class="sb-group">Assets</div>
-      <div class="sb-item on" data-fmt="all"><span class="sbi-l"><svg class="icn" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>All Assets</span><span class="cnt" id="nav-count-all">0</span></div>
-      <div class="sb-item" data-fmt="Video"><span class="sbi-l"><svg class="icn" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>Videos</span><span class="cnt" id="nav-count-Video">0</span></div>
-      <div class="sb-item" data-fmt="Playable"><span class="sbi-l"><svg class="icn" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="1"/><path d="M9 12h6M12 9v6"/></svg>Playables</span><span class="cnt" id="nav-count-Playable">0</span></div>
-      <div class="sb-item" data-fmt="Image"><span class="sbi-l"><svg class="icn" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>Images</span><span class="cnt" id="nav-count-Image">0</span></div>
+      <div class="sb-item on" data-fmt="all" role="button" tabindex="0"><span class="sbi-l"><svg class="icn" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>All Assets</span><span class="cnt" id="nav-count-all">0</span></div>
+      <div class="sb-item" data-fmt="Video" role="button" tabindex="0"><span class="sbi-l"><svg class="icn" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>Videos</span><span class="cnt" id="nav-count-Video">0</span></div>
+      <div class="sb-item" data-fmt="Playable" role="button" tabindex="0"><span class="sbi-l"><svg class="icn" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="1"/><path d="M9 12h6M12 9v6"/></svg>Playables</span><span class="cnt" id="nav-count-Playable">0</span></div>
+      <div class="sb-item" data-fmt="Image" role="button" tabindex="0"><span class="sbi-l"><svg class="icn" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>Images</span><span class="cnt" id="nav-count-Image">0</span></div>
 
       <div class="sb-group">Creative Labels</div>
-      <div class="sb-item" data-page="valia"><span class="sbi-l"><svg class="icn" viewBox="0 0 24 24"><path d="M20.6 13.4L12 22l-9-9V4a1 1 0 0 1 1-1h8l8.6 8.6a1 1 0 0 1 0 1.4z"/><circle cx="7.5" cy="7.5" r="1.2"/></svg>VALIA</span><span class="cnt" id="nav-count-valia">0</span></div>
+      <div class="sb-item" data-page="valia" role="button" tabindex="0"><span class="sbi-l"><svg class="icn" viewBox="0 0 24 24"><path d="M20.6 13.4L12 22l-9-9V4a1 1 0 0 1 1-1h8l8.6 8.6a1 1 0 0 1 0 1.4z"/><circle cx="7.5" cy="7.5" r="1.2"/></svg>VALIA</span><span class="cnt" id="nav-count-valia">0</span></div>
     </nav>
     <div class="sb-footer">
       <div><span class="sdot" id="sbDot"></span><span id="sbStatus">Loading…</span></div>
@@ -418,7 +443,7 @@ input.inp:focus,select.inp:focus{border-color:var(--acc)}
     <div class="main-topbar">
       <button class="hamburger" id="hamburgerBtn"><svg class="icn-lg" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
       <div class="page-title-wrap">
-        <div class="page-title">Creative Performance</div>
+        <h1 class="page-title">Creative Performance</h1>
         <div class="page-sub" id="pageSub">Loading dashboard…</div>
       </div>
       <div class="main-actions">
@@ -475,18 +500,20 @@ input.inp:focus,select.inp:focus{border-color:var(--acc)}
       </div>
     </div>
 
-    <div class="page-content">
-      <div id="banners"></div>
+    <main class="page-content">
+      <!-- role="status" so a load failure or "no rows matched" is announced,
+           not just coloured. -->
+      <div id="banners" role="status" aria-live="polite"></div>
       <div class="krow" id="kpis"></div>
       <div class="g2">
         <div class="cc"><div class="cc-t">Format Distribution</div><div class="cc-s">Creative count by format, not spend share</div><div class="cc-canvas-wrap"><canvas id="chart-format"></canvas></div></div>
         <div class="cc"><div class="cc-t">Leaderboard</div><div class="cc-s">Top assets by attributed spend</div><div class="cc-canvas-wrap"><canvas id="chart-top10"></canvas></div></div>
       </div>
       <div class="tabs" id="tabs">
-        <div class="tab on" data-fmt="all">All<span class="cnt" id="count-all">0</span></div>
-        <div class="tab" data-fmt="Video"><span class="dot"></span>Videos<span class="cnt" id="count-Video">0</span></div>
-        <div class="tab" data-fmt="Playable"><span class="dot"></span>Playables<span class="cnt" id="count-Playable">0</span></div>
-        <div class="tab" data-fmt="Image"><span class="dot"></span>Images<span class="cnt" id="count-Image">0</span></div>
+        <div class="tab on" data-fmt="all" role="button" tabindex="0">All<span class="cnt" id="count-all">0</span></div>
+        <div class="tab" data-fmt="Video" role="button" tabindex="0"><span class="dot"></span>Videos<span class="cnt" id="count-Video">0</span></div>
+        <div class="tab" data-fmt="Playable" role="button" tabindex="0"><span class="dot"></span>Playables<span class="cnt" id="count-Playable">0</span></div>
+        <div class="tab" data-fmt="Image" role="button" tabindex="0"><span class="dot"></span>Images<span class="cnt" id="count-Image">0</span></div>
       </div>
 
       <div id="valiaPage" style="display:none">
@@ -503,13 +530,13 @@ input.inp:focus,select.inp:focus{border-color:var(--acc)}
             <button class="btn btn-acc" id="valiaRefresh"><svg class="icn" id="valiaRefreshIcn" viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>Reload</button>
           </div>
         </div>
-        <div id="valiaBanners"></div>
+        <div id="valiaBanners" role="status" aria-live="polite"></div>
         <div id="valiaContent"></div>
       </div>
       <div id="content">
         <div class="skeleton-grid" id="skeleton"></div>
       </div>
-    </div>
+    </main>
   </div>
 </div>
 
@@ -530,6 +557,50 @@ input.inp:focus,select.inp:focus{border-color:var(--acc)}
   <div class="modal" role="dialog" aria-modal="true">
     <div class="modal-preview" id="modal-preview"><button class="modal-close" id="modal-close">✕</button></div>
     <div class="modal-info" id="modal-info"></div>
+  </div>
+</div>
+
+<!-- ADMIN MODAL — MUST STAY ABOVE THE MAIN SCRIPT BLOCK BELOW.
+     This markup used to sit below the script, and that silently broke every
+     reload that had a live session. startDashboard() awaits
+     loadDashboardAuth(), which resolves immediately when a sessionStorage
+     token exists, so the await continuation runs on the end-of-script
+     microtask checkpoint — before the parser has reached anything further
+     down the page. bindFilters() then called
+     getElementById('adminClose').addEventListener on null, threw, and took out
+     every binding after it (logout, hamburger, admin add) plus the refresh()
+     call that loads the data. The page showed "Page error" and no creatives.
+     A fresh tab worked, because with no token loadDashboardAuth() waits for a
+     sign-in click, by which time parsing has finished. bindFilters() is
+     defensive now too (see the on() helper), but keeping this markup above the
+     script is what actually makes the order correct. -->
+<div class="modal-backdrop" id="adminBackdrop">
+  <div class="admin-modal">
+    <div class="admin-head">
+      <div>
+        <h3>Dashboard access</h3>
+        <p id="adminHeadSub">Only these Google accounts can sign in.</p>
+      </div>
+      <button class="btn btn-xs" id="adminClose">Close</button>
+    </div>
+    <div class="admin-body">
+      <div class="admin-msg" id="adminMsg"></div>
+      <div class="admin-add">
+        <input class="inp" id="adminNewEmail" type="email" placeholder="name@gamedistrict.co" />
+        <select class="inp" id="adminNewRole">
+          <option value="viewer">Viewer</option>
+          <option value="admin">Admin</option>
+        </select>
+        <label class="admin-check" title="Allow a Google account outside the company domain (e.g. a contractor on gmail.com).">
+          <input type="checkbox" id="adminNewExternal" /> External guest
+        </label>
+        <button class="btn btn-acc" id="adminAddBtn">Add user</button>
+      </div>
+      <table class="admin-tbl">
+        <thead><tr><th>Email</th><th>Role</th><th>Access</th><th>Status</th><th></th></tr></thead>
+        <tbody id="adminRows"><tr><td colspan="5" style="color:var(--mut)">Loading…</td></tr></tbody>
+      </table>
+    </div>
   </div>
 </div>
 
@@ -607,7 +678,6 @@ let appliedDatePreset = 'all';
 let appliedSingleDate = '';
 let _isFetching = false;
 let _reqSeq = 0;
-let _emptyTimer = null;
 let chartFormat = null, chartTop10 = null;
 /* ============================================================================
  * AUTH STATE
@@ -916,11 +986,37 @@ function readField(row, name){
  * data. The client just needs to parse that one shared row shape; no
  * client-side attribution or de-dup math needed anymore.
  * ------------------------------------------------------------------------- */
-function rate(v){
+/* Two different quantities used to share one parser, and the shared rule was
+ * wrong for one of them.
+ *
+ *   rate(v) did:  raw.indexOf('%') !== -1 || n > 1 ? n / 100 : n
+ *
+ * The "n > 1 means it must be a percentage" guess is fine for CTR and install
+ * rate, which are never above 1.0 as a fraction. It is WRONG for ROAS, where
+ * 2.5 legitimately means 2.5x — that got silently turned into 0.025, a 100x
+ * under-report with no error anywhere.
+ *
+ * It has been dormant because DATA_SCHEMA in creative.gs carries no revenue or
+ * ROAS columns, so these fields are all zero today. It would have gone live,
+ * quietly and wrongly, the day someone added them.
+ */
+
+// CTR, install rate — a fraction in 0..1. A bare value above 1 is a percentage
+// that lost its sign somewhere.
+function pctRate(v){
   const raw = str(v);
   const n = num(v);
   if (!n) return 0;
   return raw.indexOf('%') !== -1 || n > 1 ? n / 100 : n;
+}
+
+// ROAS — a multiplier. 2.5 means 2.5x and must stay 2.5. Only an explicit '%'
+// makes it a percentage.
+function ratio(v){
+  const raw = str(v);
+  const n = num(v);
+  if (!n) return 0;
+  return raw.indexOf('%') !== -1 ? n / 100 : n;
 }
 
 function cleanUrl(value){
@@ -1093,14 +1189,14 @@ function parseAppLovinDataRows(rows){
       clicks: num(readField(r, 'Clicks') || readField(r, 'clicks')),
       interactions: num(readField(r, 'interactions') || readField(r, 'Interactions') || readField(r, 'Clicks') || readField(r, 'clicks')),
       installs: num(readField(r, 'Installs') || readField(r, 'installs')),
-      rowInstallRate: rate(readField(r, 'install_rate') || readField(r, 'Install Rate')),
+      rowInstallRate: pctRate(readField(r, 'install_rate') || readField(r, 'Install Rate')),
       revenue: num(readField(r, 'Revenue')) || num(readField(r, 'Revenue D7')) || num(readField(r, 'D7 Revenue')),
       sales: num(readField(r, 'Sales')),
-      roas7: rate(readField(r, 'D7 ROAS')) || rate(readField(r, 'ROAS D7')) || rate(readField(r, 'ROAS')),
-      roas30: rate(readField(r, 'D30 ROAS')) || rate(readField(r, 'ROAS D30')),
-      iapRoas7: rate(readField(r, 'IAP D7')) || rate(readField(r, 'IAP ROAS D7')) || rate(readField(r, 'D7 IAP ROAS')),
-      adRoas7: rate(readField(r, 'Ad D7')) || rate(readField(r, 'Ad ROAS D7')) || rate(readField(r, 'D7 Ad ROAS')),
-      rowCtr: rate(readField(r, 'CTR') || readField(r, 'ctr')),
+      roas7: ratio(readField(r, 'D7 ROAS')) || ratio(readField(r, 'ROAS D7')) || ratio(readField(r, 'ROAS')),
+      roas30: ratio(readField(r, 'D30 ROAS')) || ratio(readField(r, 'ROAS D30')),
+      iapRoas7: ratio(readField(r, 'IAP D7')) || ratio(readField(r, 'IAP ROAS D7')) || ratio(readField(r, 'D7 IAP ROAS')),
+      adRoas7: ratio(readField(r, 'Ad D7')) || ratio(readField(r, 'Ad ROAS D7')) || ratio(readField(r, 'D7 Ad ROAS')),
+      rowCtr: pctRate(readField(r, 'CTR') || readField(r, 'ctr')),
       rowCpm: num(readField(r, 'CPM') || readField(r, 'cpm')),
       rowCpi: num(readField(r, 'CPI') || readField(r, 'cpi')),
     });
@@ -1756,8 +1852,19 @@ function fetchDataOnce(forceSync, onPartial){
       googleRefreshedAt: googleAdsData.refreshedAt || '',
       appLovinCreatives: parseAppLovinDataRows(getTabRows(appLovinData)),
       googleCreatives: parseAppLovinDataRows(getTabRows(googleAdsData)),
-      currencyCode: 'USD',
-      accountTimeZone: '',
+      currencyCode: appLovinData.currencyCode || googleAdsData.currencyCode || 'USD',
+
+      // accountToday() — which every date preset is built on — resolves "today"
+      // in the ad account's timezone, but this was hardcoded to '' so it always
+      // fell back to the BROWSER's local date. On a team several hours off the
+      // reporting timezone, "Today" and "Yesterday" silently covered the wrong
+      // day. The machinery was all there; it was just never fed.
+      //
+      // Read it from the response instead. creative.gs does not send it yet, so
+      // this still falls back to browser-local today — but the moment the
+      // server adds `accountTimeZone: Session.getScriptTimeZone()` to
+      // getCreativeData_, it starts working with no client change.
+      accountTimeZone: appLovinData.accountTimeZone || googleAdsData.accountTimeZone || '',
       range,
     });
 
@@ -1904,7 +2011,6 @@ function presetLabel(value){
 }
 
 function aggregate(creatives, startDate, endDate){
-  const serverFiltered = false;
   return creatives.map(c => {
     let spend=0, impr=0, clicks=0, interactions=0, installs=0, revenue=0, sales=0;
     let roasW=0, roas7Sum=0, roas30Sum=0, iap7Sum=0, ad7Sum=0, daysActive=0;
@@ -1912,11 +2018,14 @@ function aggregate(creatives, startDate, endDate){
     c.days.forEach(d => {
       const rowDate = ymdCell(d.date);
 
-      if (!serverFiltered) {
-        if ((startDate || endDate) && !rowDate) return;
-        if (startDate && rowDate < startDate) return;
-        if (endDate && rowDate > endDate) return;
-      }
+      // Always filtered here, even though the request was also date-bounded:
+      // apiRangeForFetch() widens the server window by a day on each side, so
+      // the response is a superset of the selected range on purpose.
+      // (This used to sit behind `const serverFiltered = false`, a constant that
+      // read like a toggle but could never be anything else.)
+      if ((startDate || endDate) && !rowDate) return;
+      if (startDate && rowDate < startDate) return;
+      if (endDate && rowDate > endDate) return;
 
       spend+=d.spend; impr+=d.impressions; clicks+=d.clicks; interactions+=d.interactions;
       installs+=d.installs; revenue+=d.revenue; sales+=d.sales;
@@ -2000,10 +2109,33 @@ function updateLabels(){
   document.getElementById('sbRefreshed').textContent = 'AppLovin: ' + (META.appLovinRefreshedAt || '—') + ' · Google Ads: ' + (META.googleRefreshedAt || '—');
 }
 
-function render(){
-  const range = rangeForPreset(appliedDatePreset);
+// aggregate() depends on CREATIVES and the date range, and on nothing else.
+// Search, network, sort and the format tabs all re-run render(), and each of
+// those was paying for a full re-aggregation — every creative, every day —
+// before filtering a list it had just built identically a moment earlier.
+// Memoising it makes typing in the search box cost a filter, not a rebuild.
+//
+// invalidateAggregateCache() must be called whenever CREATIVES is replaced.
+let _aggCache = { key: '', rows: null };
+
+function invalidateAggregateCache(){ _aggCache = { key: '', rows: null }; }
+
+function aggregatedRowsFor(range){
+  const key = (range.startDate || '') + '|' + (range.endDate || '') + '|' + CREATIVES.length;
+  if (_aggCache.rows && _aggCache.key === key) return _aggCache.rows;
+
   let rows = aggregate(CREATIVES, range.startDate, range.endDate);
   if (range.startDate || range.endDate) rows = rows.filter(r => r.daysActive > 0);
+
+  _aggCache = { key: key, rows: rows };
+  return rows;
+}
+
+function render(){
+  const range = rangeForPreset(appliedDatePreset);
+  // slice() because the sort below mutates, and the cached array must not be
+  // reordered under the next caller.
+  let rows = aggregatedRowsFor(range).slice();
 
   const q = document.getElementById('search').value.toLowerCase().trim();
   const network = document.getElementById('network').value;
@@ -2181,12 +2313,72 @@ function renderGrid(rows){
     if (_gridRows[idx]) openModal(_gridRows[idx]);
   });
 
-  // Render every batch now so the visible cards always match the sidebar and
-  // tab counts. The previous observer watched .page-content even when the
-  // document was the actual scroll container, so it commonly stopped after
-  // two batches (48 cards).
-  while (_gridDrawn < _gridRows.length) appendCardBatch();
-  document.getElementById('gridSentinel').style.display = 'none';
+  // Draw the first batch, then let the sentinel pull in the rest as it nears
+  // the viewport.
+  //
+  // This used to render EVERY batch up front. The reason given was that the
+  // observer commonly stalled after ~48 cards because it watched .page-content
+  // while the document was the real scroll container — a correct diagnosis, but
+  // the fix disabled lazy rendering altogether, so every render (including
+  // every keystroke in the search box) rebuilt the entire card list.
+  //
+  // Observing against `root: null` uses the viewport, which is right whichever
+  // element actually scrolls. The sidebar and tab counts are unaffected either
+  // way: they are computed in render() from `rows`, not from how many cards
+  // happen to be drawn.
+  appendCardBatch();
+
+  const sentinel = document.getElementById('gridSentinel');
+
+  if (typeof IntersectionObserver !== 'function'){
+    // No observer support — draw everything rather than hide rows.
+    while (_gridDrawn < _gridRows.length) appendCardBatch();
+    sentinel.style.display = 'none';
+    return;
+  }
+
+  // Keep appending while the sentinel is still within (viewport + margin).
+  //
+  // THIS IS THE PART THAT MAKES LAZY LOADING SAFE. IntersectionObserver only
+  // fires when an element CROSSES the threshold. If one batch does not push the
+  // sentinel below the fold, the sentinel simply stays intersecting, no further
+  // callback ever arrives, and the grid is stuck at 24 cards — which is exactly
+  // the stall that made the previous author give up and render everything.
+  // Topping up until the sentinel is genuinely out of range removes that whole
+  // failure mode. The guard is a runaway stop, nothing more.
+  //
+  // getBoundingClientRect() is viewport-relative, so this is correct whether
+  // the document or .page-content is the element that actually scrolls.
+  const FILL_MARGIN = 800;
+  const fillUntilOffscreen = () => {
+    let guard = 0;
+    while (
+      _gridDrawn < _gridRows.length &&
+      guard++ < 500 &&
+      sentinel.getBoundingClientRect().top < window.innerHeight + FILL_MARGIN
+    ) {
+      appendCardBatch();
+    }
+  };
+
+  fillUntilOffscreen();
+
+  if (_gridDrawn >= _gridRows.length){
+    sentinel.style.display = 'none';
+    return;
+  }
+
+  _gridObserver = new IntersectionObserver(entries => {
+    if (!entries.some(entry => entry.isIntersecting)) return;
+    fillUntilOffscreen();
+    if (_gridDrawn >= _gridRows.length){
+      _gridObserver.disconnect();
+      _gridObserver = null;
+      sentinel.style.display = 'none';
+    }
+  }, { root: null, rootMargin: FILL_MARGIN + 'px 0px' });   // null = viewport
+
+  _gridObserver.observe(sentinel);
 }
 
 function money(n, digits){
@@ -2196,35 +2388,9 @@ function money(n, digits){
 function pct(n){
   return n ? (n*100).toFixed(2)+'%' : '—';
 }
-function renderTable(rows){
-  const el = document.getElementById('content');
-  if (!rows.length){
-    el.innerHTML = '<div class="empty"><h3>No '+(activeFormat==='all'?'creatives':activeFormat.toLowerCase()+'s')+' match</h3><p>Try a wider date range or different filters.</p></div>';
-    return;
-  }
-  el.innerHTML =
-    '<div class="asset-table-wrap"><table class="asset-table">'+
-      '<thead><tr>'+
-        '<th>Asset</th><th>Format</th><th class="num">Impressions</th><th class="num">Spend</th>'+
-        '<th class="num">Installs</th><th class="num">CPI</th><th class="num">CPM</th><th class="num">CTR</th>'+
-      '</tr></thead>'+
-      '<tbody>'+
-        rows.map(r =>
-          '<tr>'+
-            '<td class="asset-cell"><strong>'+escapeHtml(r.name||r.id)+'</strong><span>'+escapeHtml(r.id)+'</span></td>'+
-            '<td>'+escapeHtml(r.format||'')+'</td>'+
-            '<td class="num">'+shortNum(r.impressions)+'</td>'+
-            '<td class="num">'+money(r.spend, 2)+'</td>'+
-            '<td class="num">'+(r.installs ? shortNum(r.installs) : '—')+'</td>'+
-            '<td class="num">'+money(r.cpi, 2)+'</td>'+
-            '<td class="num">'+money(r.cpm, 2)+'</td>'+
-            '<td class="num">'+pct(r.ctr)+'</td>'+
-          '</tr>'
-        ).join('')+
-      '</tbody>'+
-    '</table></div>';
-  el.querySelectorAll('tbody tr').forEach((row,i) => row.addEventListener('click', () => openModal(rows[i])));
-}
+// renderTable() removed — it was never called from anywhere, and the app has
+// only ever rendered the card grid. Its .asset-table CSS is kept in case the
+// table view is wanted back.
 
 function iconSvg(format){
   if (format==='Video') return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="6 4 20 12 6 20 6 4" stroke-linejoin="round"/></svg>';
@@ -2287,7 +2453,7 @@ function thumbHtml(r){
   if (isVideoUrl(u)) {
     return '<video ' +
       'src="' + escapeHtml(url) + '" ' +
-      'muted playsinline preload="metadata">' +
+      'muted playsinline preload="none">' +
     '</video>';
   }
 
@@ -2441,16 +2607,8 @@ function renderSkeleton(n){
   ).join('');
 }
 
-function renderLoadingCreatives(){
-  const el = document.getElementById('content');
-  if (!el) return;
-  el.innerHTML =
-    '<div class="empty loading-creatives">' +
-      '<div class="lc-spinner"></div>' +
-      '<h3>Loading creatives…</h3>' +
-      '<p>Fetching the latest data for this date range.</p>' +
-    '</div>';
-}
+// renderLoadingCreatives() removed — never called; renderSkeleton() is the
+// loading state the app actually uses, and .lc-spinner had no CSS rule anyway.
 function showBanner(kind, msg){
   document.getElementById('banners').innerHTML = '<div class="banner '+kind+'">'+escapeHtml(msg)+'</div>';
 }
@@ -2464,10 +2622,41 @@ function setStatus(state, text){
 /* ---------------------------------------------------------------------------
  * BIND + BOOT
  * ------------------------------------------------------------------------- */
+// Bind by id without letting one missing element take down the rest.
+//
+// bindFilters() is a flat list of getElementById(...).addEventListener(...)
+// calls, so a single null threw and skipped EVERY binding after it — and
+// because bindFilters runs inside async startDashboard(), that rejection also
+// killed the refresh() call that loads the data. One absent element turned into
+// a blank dashboard showing "Page error". Now a missing id costs exactly one
+// handler and says so in the console.
+function on(id, event, handler){
+  const el = document.getElementById(id);
+  if (!el){
+    console.warn('bindFilters: #' + id + ' not found — "' + event + '" handler skipped.');
+    return null;
+  }
+  el.addEventListener(event, handler);
+  return el;
+}
+
+// Trailing debounce. The search box fires render() on every keystroke, and
+// render() re-filters, re-sorts, rebuilds the whole card grid and repaints two
+// charts. At typing speed that is several full rebuilds per second, all but the
+// last of them discarded.
+function debounce(fn, ms){
+  let timer = null;
+  return function(){
+    const args = arguments, self = this;
+    clearTimeout(timer);
+    timer = setTimeout(() => fn.apply(self, args), ms);
+  };
+}
+
 function bindFilters(){
-  document.getElementById('search').addEventListener('input', render);
-  document.getElementById('network').addEventListener('change', render);
-  document.getElementById('sort').addEventListener('change', render);
+  on('search', 'input', debounce(render, 180));
+  on('network', 'change', render);
+  on('sort', 'change', render);
 
   const dateSel = document.getElementById('dateRange');
   const singleWrap = document.getElementById('singleDateWrap');
@@ -2493,7 +2682,7 @@ function bindFilters(){
     }
     applyDateChange();
   });
-  document.getElementById('singleDateConfirm').addEventListener('click', () => {
+  on('singleDateConfirm', 'click', () => {
     const singleDate = document.getElementById('singleDate');
     if (!singleDate.value){
       singleDate.reportValidity();
@@ -2503,8 +2692,8 @@ function bindFilters(){
     appliedDatePreset = 'single';
     applyDateChange();
   });
-  document.getElementById('customStart').addEventListener('change', () => { applyDateChange(); });
-  document.getElementById('customEnd').addEventListener('change', () => { applyDateChange(); });
+  on('customStart', 'change', () => { applyDateChange(); });
+  on('customEnd', 'change', () => { applyDateChange(); });
   updateDateInputs();
 
   document.querySelectorAll('[data-fmt]').forEach(btn => {
@@ -2525,24 +2714,35 @@ function bindFilters(){
   //
   // It does NOT pull from AppLovin or Google Ads — it only re-reads the sheets,
   // so it is one ordinary request and safe to press repeatedly.
-  document.getElementById('reloadBtn').addEventListener('click', () => {
+  on('reloadBtn', 'click', () => {
     clearRangeCache();
     clearStoredRanges();
     refresh(false);
   });
 
-  document.getElementById('adminBtn').addEventListener('click', openAdminPanel);
-  document.getElementById('adminClose').addEventListener('click', closeAdminPanel);
-  document.getElementById('adminAddBtn').addEventListener('click', adminAddUser);
-  document.getElementById('adminNewEmail').addEventListener('keydown', ev => {
+  on('adminBtn', 'click', openAdminPanel);
+  on('adminClose', 'click', closeAdminPanel);
+  on('adminAddBtn', 'click', adminAddUser);
+  on('adminNewEmail', 'keydown', ev => {
     if (ev.key === 'Enter') adminAddUser();
   });
-  document.getElementById('adminBackdrop').addEventListener('click', ev => {
+  on('adminBackdrop', 'click', ev => {
     if (ev.target.id === 'adminBackdrop') closeAdminPanel();
   });
-  document.getElementById('logoutBtn').addEventListener('click', signOut);
-  document.getElementById('hamburgerBtn').addEventListener('click', () => document.getElementById('sidebar').classList.toggle('open'));
-  document.getElementById('sidebarCloseBtn').addEventListener('click', () => document.getElementById('sidebar').classList.remove('open'));
+  on('logoutBtn', 'click', signOut);
+  on('hamburgerBtn', 'click', () => document.getElementById('sidebar').classList.toggle('open'));
+  on('sidebarCloseBtn', 'click', () => document.getElementById('sidebar').classList.remove('open'));
+
+  // The sidebar items and format tabs are divs carrying role="button", so the
+  // browser gives them no keyboard activation of their own. Space/Enter has to
+  // be wired by hand or they are mouse-only.
+  document.querySelectorAll('.sb-item, .tab').forEach(el => {
+    el.addEventListener('keydown', ev => {
+      if (ev.key !== 'Enter' && ev.key !== ' ') return;
+      ev.preventDefault();
+      el.click();
+    });
+  });
 }
 
 // `partial` means this is the AppLovin-only first paint — Google Ads is still
@@ -2588,6 +2788,7 @@ function applyData(payload, fromCache, partial){
     googleRefreshedAt: payload.googleRefreshedAt, currencyCode: payload.currencyCode || 'USD',
     accountTimeZone: payload.accountTimeZone || '' };
   CREATIVES = (payload.appLovinCreatives || []).concat(payload.googleCreatives || []);
+  invalidateAggregateCache();   // CREATIVES replaced — any memoised rows are stale
   updateLabels();
   clearBanner();
   if (!CREATIVES.length && !partial){
@@ -2975,7 +3176,24 @@ async function startDashboard(){
   }
 }
 
-startDashboard().catch(err => showBanner('err', 'Page error: ' + (err && err.message || err)));
+// Boot only once the document is fully parsed.
+//
+// startDashboard() is async and awaits loadDashboardAuth(), which resolves
+// synchronously when a session token is already in sessionStorage. The await
+// continuation then runs on the end-of-script microtask checkpoint, i.e. before
+// the parser has seen anything below this <script> block. Anything bindFilters()
+// looks up down there would be null. The admin modal now lives above this
+// script, so the ordering is already correct — this guard makes it stay correct
+// no matter what markup gets appended later.
+function bootDashboard(){
+  startDashboard().catch(err => showBanner('err', 'Page error: ' + (err && err.message || err)));
+}
+
+if (document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', bootDashboard, { once: true });
+} else {
+  bootDashboard();
+}
 
 
 /* ============================================================================
@@ -3154,7 +3372,16 @@ function valiaRender(){
   }
 
   el.innerHTML = '<div class="valia-grid">' + rows.map(v => {
-    const id = v.videoId;
+    // videoId comes straight from the VALIA sheet and used to be interpolated
+    // UNESCAPED into src="…" and into the onerror="…" handler below, while the
+    // same function escaped it everywhere else (data-vid, .vcard-id) — so this
+    // was an oversight, not a decision. A single apostrophe in a sheet cell
+    // broke out of the attribute and executed.
+    //
+    // A YouTube ID has exactly one shape. Validating against it is both the
+    // fix and a data check: anything else is not a video we can render.
+    const id = vYtId(v.videoId);
+    if (!id) return '';
     const thumb = 'https://i.ytimg.com/vi/' + id + '/hqdefault.jpg';
     const cls = v._state === 'labelled' ? 'full' : (v._state === 'partial' ? 'part' : 'zero');
 
@@ -3204,15 +3431,23 @@ function valiaOpenModal(videoId){
   const filled = sources.reduce(
     (n, s) => n + s.fields.filter(f => v.labels[s.tab] && v.labels[s.tab][f]).length, 0);
 
+  // Same reasoning as valiaRender(): v.videoId is sheet data going into a src
+  // attribute, so validate it to the one shape a YouTube ID can have rather
+  // than trusting it.
+  const safeId = vYtId(v.videoId);
+  if (!safeId) return;
+
   document.getElementById('valiaPlayer').innerHTML =
-    '<iframe src="https://www.youtube-nocookie.com/embed/' + v.videoId +
-    '?rel=0&modestbranding=1" title="YouTube video ' + vEsc(v.videoId) + '" ' +
+    '<iframe src="https://www.youtube-nocookie.com/embed/' + safeId +
+    '?rel=0&modestbranding=1" title="YouTube video ' + vEsc(safeId) + '" ' +
     'allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" ' +
     'allowfullscreen></iframe>';
 
   const urlEl = document.getElementById('valiaModalUrl');
   urlEl.textContent = v.url;
-  urlEl.href = v.url;
+  // href takes a URL from the sheet. javascript: would execute on click, so
+  // only http(s) is allowed through.
+  urlEl.href = /^https?:\/\//i.test(String(v.url || '')) ? v.url : '#';
   document.getElementById('valiaModalYt').onclick = () => window.open(v.url, '_blank', 'noopener');
 
   document.getElementById('valiaModalInfo').innerHTML =
@@ -3295,34 +3530,5 @@ function valiaCloseModal(){
   }
 })();
 </script>
-<div class="modal-backdrop" id="adminBackdrop">
-  <div class="admin-modal">
-    <div class="admin-head">
-      <div>
-        <h3>Dashboard access</h3>
-        <p id="adminHeadSub">Only these Google accounts can sign in.</p>
-      </div>
-      <button class="btn btn-xs" id="adminClose">Close</button>
-    </div>
-    <div class="admin-body">
-      <div class="admin-msg" id="adminMsg"></div>
-      <div class="admin-add">
-        <input class="inp" id="adminNewEmail" type="email" placeholder="name@gamedistrict.co" />
-        <select class="inp" id="adminNewRole">
-          <option value="viewer">Viewer</option>
-          <option value="admin">Admin</option>
-        </select>
-        <label class="admin-check" title="Allow a Google account outside the company domain (e.g. a contractor on gmail.com).">
-          <input type="checkbox" id="adminNewExternal" /> External guest
-        </label>
-        <button class="btn btn-acc" id="adminAddBtn">Add user</button>
-      </div>
-      <table class="admin-tbl">
-        <thead><tr><th>Email</th><th>Role</th><th>Access</th><th>Status</th><th></th></tr></thead>
-        <tbody id="adminRows"><tr><td colspan="5" style="color:var(--mut)">Loading…</td></tr></tbody>
-      </table>
-    </div>
-  </div>
-</div>
 </body>
 </html>
