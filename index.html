@@ -207,6 +207,8 @@ input.inp:focus,select.inp:focus{border-color:var(--acc)}
 .login-note{font-size:11px;color:var(--mut);line-height:1.5;margin-top:14px}
 .login-error{display:none;margin-top:12px;background:rgba(240,82,82,.08);border:0.5px solid rgba(240,82,82,.3);color:var(--red);border-radius:9px;padding:9px 11px;font-size:11px}
 .login-error.show{display:block}
+/* Routine "please sign in again", not a failure — red is the wrong signal. */
+.login-error.info{background:rgba(255,255,255,.04);border-color:var(--bor);color:var(--mut)}
 .app-shell.auth-locked{filter:blur(3px);pointer-events:none;user-select:none}
 
 @media(max-width:860px){
@@ -436,11 +438,17 @@ input.inp:focus,select.inp:focus{border-color:var(--acc)}
         <select id="dateRange" class="inp">
           <option value="today">Today</option>
           <option value="single">Single date</option>
-          <option value="all" selected>All sheet rows</option>
+          <!-- The server bounds this to CONFIG.MAX_RESPONSE_DAYS (90). Use
+               Custom range to reach older rows — they are all still in the
+               sheet, archiving is disabled. -->
+          <option value="all" selected>Default (last 90 days)</option>
           <option value="1">Yesterday</option>
           <option value="7">Last 7 days</option>
           <option value="14">Last 14 days</option>
           <option value="30">Last 30 days</option>
+          <!-- Matches CONFIG.LOOKBACK_DAYS — the window each sync actually
+               re-pulls, so every row in it is freshly rewritten. -->
+          <option value="45">Last 45 days</option>
           <option value="last_month">Last month</option>
           <option value="this_month">This month</option>
           <option value="custom">Custom range</option>
@@ -524,22 +532,38 @@ input.inp:focus,select.inp:focus{border-color:var(--acc)}
  * CONFIG
  * ========================================================================== */
 const CONFIG = {
-  API_URL: 'https://script.google.com/macros/s/AKfycbz37HtcPPpEnKwuTfjgkVNkIvMZjWy6tAQDzYaufCNbbobmIJwzVlj37FNfoWmA7dtT/exec',
+  API_URL: 'https://script.google.com/macros/s/AKfycbzyv6CkdaLKQbHNLpv5NrbMux8KxnPx7VmRgWm5RJ4sQXi-XQmloT_oME0AVqVO2WQi/exec',
 
   // OAuth 2.0 "Web application" Client ID from Google Cloud Console.
   // This is PUBLIC by design — it is safe to commit and safe to serve from
   // GitHub Pages. Security comes from the Authorized JavaScript origins on
   // the client itself plus the server-side `aud` check in creative.gs.
   // The SAME value must be set as the GOOGLE_CLIENT_ID Script Property.
-  GOOGLE_CLIENT_ID: '1012644058552-ds6q0th2mrbb433tg29r3rb0rf7av1po.apps.googleusercontent.com',
+ GOOGLE_CLIENT_ID:  '1012644058552-ds6q0th2mrbb433tg29r3rb0rf7av1po.apps.googleusercontent.com',
   SHEET: 'applovin_data',
   GOOGLE_SHEET: 'google_ads_data',
-  CACHE_KEY: 'creativeDashCache_v16_google_playable_names',
+  CACHE_KEY: 'creativeDashCache_v18_compact',
   // The API reads the pre-aggregated applovin_data and google_ads_data tabs,
   // so a slow response almost always means a network/deployment problem.
   // Keep this modest and retry once instead of one long hung wait.
-  FETCH_TIMEOUT_MS: 360000,
+  //
+  // This was 360000 (6 minutes). With FETCH_RETRIES that meant a broken
+  // deployment showed a spinner for TWELVE minutes before saying anything —
+  // which is what "the dashboard hangs" actually was. The server now caps the
+  // default window (CONFIG.MAX_RESPONSE_DAYS) and caches whole payloads, so a
+  // healthy response arrives in seconds and 90s is pure headroom.
+  FETCH_TIMEOUT_MS: 90000,
   FETCH_RETRIES: 1,
+
+  // "Sync Now" is NOT a read. doPost runs the whole AppLovin pull inline before
+  // it returns any data, so that single request legitimately takes minutes.
+  // Timing it out at FETCH_TIMEOUT_MS aborted a sync that was working fine, and
+  // the retry then re-issued it while the first was still running server-side —
+  // which the script lock rejects.
+  //
+  // 7 minutes is deliberately past Apps Script's own 6-minute execution ceiling:
+  // if the server is going to give up, let IT be the one that says so.
+  SYNC_TIMEOUT_MS: 420000,
   AUTO_REFRESH_MS: 24 * 60 * 60 * 1000,
 };
 
@@ -551,6 +575,8 @@ const COLOR = { Video:'#9b72f5', Playable:'#00e5c3', Image:'#4d9fff', accent:'#4
 let CREATIVES = [];     // processed, deduped, attributed per-asset daily records
 let META = { game:'', appLovinRefreshedAt:'', googleRefreshedAt:'', currencyCode:'USD', accountTimeZone:'' };
 let activeFormat = 'all';
+// Full history by default. Safe again now that responses are deduplicated:
+// each creative's metadata is sent once instead of once per day it ran.
 let appliedDatePreset = 'all';
 let appliedSingleDate = '';
 let _isFetching = false;
@@ -569,33 +595,90 @@ let SESSION_TOKEN = '';
 let SESSION_ROLE  = '';
 let SESSION_EMAIL = '';
 let SESSION_NAME  = '';
+let SESSION_EXPIRES_AT = 0;   // ms epoch; 0 = unknown
 
 try {
   SESSION_TOKEN = sessionStorage.getItem('dashSessionToken') || '';
   SESSION_ROLE  = sessionStorage.getItem('dashSessionRole')  || '';
   SESSION_EMAIL = sessionStorage.getItem('dashSessionEmail') || '';
   SESSION_NAME  = sessionStorage.getItem('dashSessionName')  || '';
+  SESSION_EXPIRES_AT = Number(sessionStorage.getItem('dashSessionExpiresAt') || 0) || 0;
 } catch(e) {}
+
+// A token we already know is past its expiry is worth nothing: replaying it
+// costs a round trip and ends in a rejection that reads like a failure. Drop it
+// here so the tab opens on a clean sign-in card instead.
+//
+// This is a convenience check, never the control — the server re-validates
+// every token on every request regardless of what this thinks.
+if (SESSION_TOKEN && SESSION_EXPIRES_AT && Date.now() >= SESSION_EXPIRES_AT){
+  clearSession();
+}
 
 function storeSession(data){
   SESSION_TOKEN = data.token || '';
   SESSION_ROLE  = data.role  || '';
   SESSION_EMAIL = data.email || '';
   SESSION_NAME  = data.name  || data.email || '';
+
+  // expiresIn is seconds (SESSION_TTL_SECONDS on the server). Store the
+  // absolute moment so a reload can tell a live token from a dead one without
+  // asking. A server that sends no expiresIn leaves this 0 = "just try it".
+  const ttlMs = Number(data.expiresIn || 0) * 1000;
+  SESSION_EXPIRES_AT = ttlMs > 0 ? Date.now() + ttlMs : 0;
+
   try {
     sessionStorage.setItem('dashSessionToken', SESSION_TOKEN);
     sessionStorage.setItem('dashSessionRole',  SESSION_ROLE);
     sessionStorage.setItem('dashSessionEmail', SESSION_EMAIL);
     sessionStorage.setItem('dashSessionName',  SESSION_NAME);
+    sessionStorage.setItem('dashSessionExpiresAt', String(SESSION_EXPIRES_AT));
   } catch(e) {}
 }
 
 function clearSession(){
   SESSION_TOKEN = ''; SESSION_ROLE = ''; SESSION_EMAIL = ''; SESSION_NAME = '';
+  SESSION_EXPIRES_AT = 0;
   try {
-    ['dashSessionToken','dashSessionRole','dashSessionEmail','dashSessionName']
+    ['dashSessionToken','dashSessionRole','dashSessionEmail','dashSessionName',
+     'dashSessionExpiresAt']
       .forEach(k => sessionStorage.removeItem(k));
   } catch(e) {}
+}
+
+// Reads an Apps Script response defensively.
+//
+// Apps Script answers with HTTP 200 + an HTML page whenever the request does
+// not reach doPost cleanly — the execution timed out, the deployment was
+// replaced, or the endpoint is serving a Google interstitial. Calling
+// res.json() on that produced the opaque browser error:
+//     Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+// so read the body as text first and say what actually came back.
+//
+// The wording below deliberately avoids the words refresh()'s error handler
+// treats as sign-in failures, so a transport problem never bounces a
+// legitimately signed-in user back to the login card.
+async function readApiJson(res, label){
+  const text = await res.text();
+
+  if (!res.ok) throw new Error(label + ' API returned HTTP ' + res.status);
+
+  const head = text.slice(0, 200).trim().toLowerCase();
+  if (head.indexOf('<!doctype') === 0 || head.indexOf('<html') === 0){
+    throw new Error(
+      label + ': the Apps Script endpoint returned an HTML page instead of JSON. ' +
+      'The execution probably timed out or the deployment is no longer serving ' +
+      'this URL — check the Apps Script Executions log, then redeploy if needed.'
+    );
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    throw new Error(
+      label + ': the API response was not valid JSON — ' + text.slice(0, 120)
+    );
+  }
 }
 
 // Shared POST helper. text/plain keeps it a "simple" request so the browser
@@ -606,7 +689,7 @@ async function apiPost(payload){
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
     body: JSON.stringify(payload)
   });
-  const data = await res.json();
+  const data = await readApiJson(res, 'API');
   if (data && data.error === 'unauthorized'){
     clearSession();
     throw new Error('unauthorized');
@@ -934,7 +1017,41 @@ function parseAppLovinDataRows(rows){
   return Object.values(byCreative);
 }
 
+// Rebuilds full row objects from the deduplicated "compact-v2" payload.
+// The API sends each creative's metadata once and references it by index from
+// the per-day rows; this puts it back so every downstream consumer sees the
+// same objects it always did. Nothing is dropped.
+function expandCompactPayload(payload){
+  const metaFields   = payload.metaFields   || [];
+  const metricFields = payload.metricFields || [];
+  const creatives    = payload.creatives    || [];
+  const dates        = payload.dates        || [];
+  const days         = payload.days         || [];
+
+  const out = new Array(days.length);
+
+  for (let i = 0; i < days.length; i++){
+    const day  = days[i];
+    const meta = creatives[day[0]] || [];
+    const obj  = {};
+
+    for (let m = 0; m < metaFields.length; m++) obj[metaFields[m]] = meta[m];
+
+    obj.date = dates[day[1]];
+
+    for (let k = 0; k < metricFields.length; k++) obj[metricFields[k]] = day[2 + k];
+
+    out[i] = obj;
+  }
+
+  return out;
+}
+
 function getTabRows(payload){
+  // New compact format. Older responses fall through to the legacy handling
+  // below, so a stale deployment keeps working during a rollout.
+  if (payload && payload.format === 'compact-v2') return expandCompactPayload(payload);
+
   const source = Array.isArray(payload) ? payload : (payload.rows || payload.values || payload.data || []);
   if (!Array.isArray(source) || !source.length) return [];
   if (source[0] && !Array.isArray(source[0]) && typeof source[0] === 'object') return source;
@@ -957,19 +1074,22 @@ function loadFromCache(){
     return JSON.parse(raw);
   } catch(e){ return null; }
 }
-function saveToCache(data){
-  try { localStorage.setItem(CONFIG.CACHE_KEY, JSON.stringify(data)); } catch(e){ /* quota or disabled — ignore */ }
-}
+// NOTE: saveToCache lives with cacheKeyForCurrentRange() further down. An
+// earlier copy here wrote to the bare CONFIG.CACHE_KEY, which loadFromCache()
+// never reads — it was dead code that only looked like the real thing.
 
 function selectedSourceSheet(){
   return CONFIG.SHEET;
 }
 
-function showLoginError(message){
+// `tone` of 'info' renders the muted style instead of the red one. A session
+// timing out is routine housekeeping, not something the user did wrong.
+function showLoginError(message, tone){
   const el = document.getElementById('loginError');
   if (!el) return;
   el.textContent = message || '';
   el.classList.toggle('show', !!message);
+  el.classList.toggle('info', !!message && tone === 'info');
 }
 
 function unlockDashboard(){
@@ -979,10 +1099,10 @@ function unlockDashboard(){
   setLoginBusy(false);
 }
 
-function lockDashboard(message){
+function lockDashboard(message, tone){
   document.getElementById('appShell').classList.add('auth-locked');
   document.getElementById('loginBackdrop').classList.add('show');
-  if (message) showLoginError(message);
+  if (message) showLoginError(message, tone);
 }
 
 /* ============================================================================
@@ -1017,10 +1137,10 @@ function handleGoogleCredential(response){
 
   apiGoogleLogin(credential)
     .then(() => {
-      // Keep the control disabled until applyData() removes the login overlay.
-      // Otherwise the button appears active while the initial API fetch runs.
-      setLoginBusy(true, 'Loading dashboard\u2026');
+      // Authentication is complete. Reveal the dashboard immediately; the
+      // startup flow paints cached data or a skeleton while sheet data loads.
       applyRoleUI();
+      unlockDashboard();
       if (_authResolve){ const r = _authResolve; _authResolve = null; r(); }
     })
     .catch(err => {
@@ -1081,6 +1201,7 @@ function loadDashboardAuth(){
     // or revoked token is caught by the first fetch and re-locks the UI.
     if (SESSION_TOKEN){
       applyRoleUI();
+      unlockDashboard();
       _authResolve = null;
       resolve();
       return;
@@ -1261,13 +1382,21 @@ function saveToCache(data){
   try { localStorage.setItem(cacheKeyForCurrentRange(), JSON.stringify(data)); } catch(e){ /* ignore */ }
 }
 
-function fetchDataOnce(forceSync){
+// onPartial (optional) is called with a usable payload as soon as the AppLovin
+// sheet lands, before google_ads_data has been asked for. The two requests are
+// deliberately sequential (see below), so without this the user stares at the
+// login overlay for the duration of BOTH — the overlay only lifts inside
+// applyData(). Painting the first half early is the difference between "it
+// hangs" and "it loads, then fills in".
+function fetchDataOnce(forceSync, onPartial){
   return new Promise((resolve, reject) => {
     const range = rangeForPreset(appliedDatePreset);
     const apiRange = apiRangeForFetch(range);
     const sourceSheet = selectedSourceSheet();
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), CONFIG.FETCH_TIMEOUT_MS);
+    // A sync does the AppLovin pull server-side inside this same request.
+    const budgetMs = forceSync ? CONFIG.SYNC_TIMEOUT_MS : CONFIG.FETCH_TIMEOUT_MS;
+    const timeoutId = setTimeout(() => controller.abort(), budgetMs);
 
     const fetchSheet = (sheetName, shouldSync, requestRange) => {
       const fetchRange = requestRange || apiRange;
@@ -1286,10 +1415,7 @@ function fetchDataOnce(forceSync){
           endDate: fetchRange.endDate || '',
         })
       })
-        .then(r => {
-          if (!r.ok) throw new Error(sheetName + ' API returned HTTP ' + r.status);
-          return r.json();
-        })
+        .then(r => readApiJson(r, sheetName))
         .then(data => {
           if (data && data.error === 'unauthorized') {
             // Token missing, expired, or revoked by an admin → drop the whole
@@ -1298,16 +1424,36 @@ function fetchDataOnce(forceSync){
             throw new Error('unauthorized');
           }
           if (data && data.error) throw new Error(data.error);
-          if (!data || !Array.isArray(data.rows)) throw new Error('Unexpected API response shape from ' + sheetName);
+          const shapeOk = data && (
+            Array.isArray(data.rows) ||
+            (data.format === 'compact-v2' && Array.isArray(data.days))
+          );
+          if (!shapeOk) throw new Error('Unexpected API response shape from ' + sheetName);
           return data;
         });
     };
 
-    const fetchAllSheets = requestRange => Promise.all([
-      fetchSheet(CONFIG.SHEET, forceSync, requestRange),
-      fetchSheet(CONFIG.GOOGLE_SHEET, false, requestRange),
-    ]);
+    // SEQUENTIAL, not Promise.all.
+    //
+    // ContentService does not return JSON directly — it redirects to a
+    // one-time URL on script.googleusercontent.com that the browser then
+    // follows. Issuing both large requests at once makes that second hop
+    // fragile, which showed up as an intermittent HTTP 404 on whichever
+    // request came second (usually google_ads_data). Running them one after
+    // the other costs a little wall-clock time and removes the contention.
+    const fetchAllSheets = (requestRange, emitPartial) =>
+      fetchSheet(CONFIG.SHEET, forceSync, requestRange)
+        .then(appLovinData => {
+          if (emitPartial && onPartial){
+            // Never let a render error abort the in-flight Google Ads request.
+            try { onPartial(buildPayload([appLovinData, {}])); } catch(e){}
+          }
+          return fetchSheet(CONFIG.GOOGLE_SHEET, false, requestRange)
+            .then(googleAdsData => [appLovinData, googleAdsData]);
+        });
 
+    // googleAdsData is {} on the partial pass. getTabRows({}) returns [], so
+    // every field below degrades to empty rather than throwing.
     const buildPayload = ([appLovinData, googleAdsData]) => ({
       game: appLovinData.game || googleAdsData.game || '',
       appLovinRefreshedAt: appLovinData.refreshedAt || '',
@@ -1319,13 +1465,22 @@ function fetchDataOnce(forceSync){
       range,
     });
 
-    fetchAllSheets(apiRange)
+    fetchAllSheets(apiRange, true)
       .then(result => {
         const payload = buildPayload(result);
+
+        // No range means the server already decided the window, so there is
+        // nothing to fall back to. Checking anyway cost a full aggregate() over
+        // every creative on the default preset — computed, then discarded.
+        if (!range.startDate && !range.endDate) return payload;
+
         const hasSelectedDateRows = aggregate(payload.appLovinCreatives.concat(payload.googleCreatives), range.startDate, range.endDate)
           .some(row => row.daysActive > 0);
-        if (hasSelectedDateRows || (!range.startDate && !range.endDate)) return payload;
-        return fetchAllSheets({ startDate: '', endDate: '' }).then(buildPayload);
+        if (hasSelectedDateRows) return payload;
+
+        // Widen to everything the server will serve. No partial emit here —
+        // the screen is already painted from the pass above.
+        return fetchAllSheets({ startDate: '', endDate: '' }, false).then(buildPayload);
       })
       .then(payload => {
         clearTimeout(timeoutId);
@@ -1333,15 +1488,32 @@ function fetchDataOnce(forceSync){
       })
       .catch(err => {
         clearTimeout(timeoutId);
-        reject(err.name === 'AbortError' ? new Error('Request timed out after ' + (CONFIG.FETCH_TIMEOUT_MS/1000) + 's — check API_URL and that the Apps Script deployment is still active.') : err);
+        reject(err.name === 'AbortError'
+          ? new Error(
+              (forceSync
+                ? 'Sync did not finish within ' + (budgetMs/1000) + 's. It may still be running in Apps Script — check Executions before starting another.'
+                : 'Request timed out after ' + (budgetMs/1000) + 's — check API_URL and that the Apps Script deployment is still active.'))
+          : err);
       });
   });
 }
 
-function fetchData(forceSync, attemptsLeft){
+function fetchData(forceSync, onPartial, attemptsLeft){
   if (attemptsLeft === undefined) attemptsLeft = CONFIG.FETCH_RETRIES;
-  return fetchDataOnce(forceSync).catch(err => {
-    if (attemptsLeft > 0) return fetchData(forceSync, attemptsLeft - 1);
+  return fetchDataOnce(forceSync, onPartial).catch(err => {
+    const msg = String(err && err.message || err);
+
+    // An expired or revoked session fails identically every time. Retrying it
+    // only doubles the wait before the user is told to sign in again.
+    if (msg === 'unauthorized') throw err;
+
+    // Never auto-retry a sync. The first one is very likely still running on
+    // the server (aborting the fetch does not stop Apps Script), so a retry
+    // either duplicates the whole AppLovin pull or is rejected by the script
+    // lock with "Another Apps Script dashboard sync is already running."
+    if (forceSync) throw err;
+
+    if (attemptsLeft > 0) return fetchData(forceSync, onPartial, attemptsLeft - 1);
     throw err;
   });
 }
@@ -1379,7 +1551,7 @@ function rangeForPreset(value){
 }
 function presetLabel(value){
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  if (value === 'all') return 'All sheet rows';
+  if (value === 'all') return 'Default (last 90 days)';
   if (value === 'today') return 'Today';
   if (value === 'single') return 'Single date';
   if (value === 'custom') return 'Custom range';
@@ -1425,7 +1597,10 @@ function aggregate(creatives, startDate, endDate){
       campaignGoal:c.campaignGoal, appId:c.appId,
       spend, impressions:impr, clicks, installs, revenue, sales, daysActive,
       ctr,
-      conversionRate: impr ? installs/impr : 0,
+      // Conversion = installs per CLICK. This used to divide by impressions,
+      // which is install-per-impression — the same quantity `ipm` already
+      // reports (x1000), just under a name that means something else.
+      conversionRate: clicks ? installs/clicks : 0,
       cpi,
       cpm,
       ipm: impr ? (installs/impr)*1000 : 0,
@@ -1502,7 +1677,9 @@ function renderKpis(rows){
   const blendedCpi = totalInstalls ? totalSpend/totalInstalls : 0;
   const blendedCtr = totalImpressions ? totalInteractions/totalImpressions : 0;
   const blendedCpm = totalImpressions ? totalSpend/totalImpressions*1000 : 0;
-  const conversionRate = totalImpressions ? totalInstalls/totalImpressions : 0;
+  // installs per CLICK — see the note in aggregate(). Dividing by impressions
+  // here reported install-per-impression under the "Conversion" label.
+  const conversionRate = totalInteractions ? totalInstalls/totalInteractions : 0;
   const cards = [
     ['blue','Creatives in view', rows.length.toLocaleString()],
     ['green','Total spend', '$'+shortNum(totalSpend)],
@@ -1977,7 +2154,10 @@ function bindFilters(){
   document.getElementById('sidebarCloseBtn').addEventListener('click', () => document.getElementById('sidebar').classList.remove('open'));
 }
 
-function applyData(payload, fromCache){
+// `partial` means this is the AppLovin-only first paint — Google Ads is still
+// in flight. Everything renders, but the empty-state warning is suppressed
+// (it would be wrong) and the status says so instead of claiming "Live".
+function applyData(payload, fromCache, partial){
   unlockDashboard();
   applyRoleUI();
   META = { game: payload.game, appLovinRefreshedAt: payload.appLovinRefreshedAt,
@@ -1986,11 +2166,15 @@ function applyData(payload, fromCache){
   CREATIVES = (payload.appLovinCreatives || []).concat(payload.googleCreatives || []);
   updateLabels();
   clearBanner();
-  if (!CREATIVES.length){
+  if (!CREATIVES.length && !partial){
     showBanner('warn', 'No AppLovin or Google Ads creative rows matched the selected date range.');
   }
   render();
-  setStatus('ok', fromCache ? 'Showing cached data' : 'Live');
+  if (partial){
+    setStatus('ok', 'Loading Google Ads…');
+  } else {
+    setStatus('ok', fromCache ? 'Showing cached data' : 'Live');
+  }
 }
 
 function refresh(forceIndicator){
@@ -2004,7 +2188,12 @@ function refresh(forceIndicator){
   renderSkeleton(8);
   _isFetching = true;
   if (forceIndicator){ btn.disabled = true; icn.classList.add('spinning'); setStatus('ok','Syncing…'); }
-  fetchData(forceIndicator)
+  fetchData(forceIndicator, partial => {
+      if (myReq !== _reqSeq) return;   // a newer refresh started — drop this paint
+      // First paint: lifts the sign-in overlay as soon as AppLovin is in,
+      // instead of holding it until google_ads_data has also been fetched.
+      applyData(partial, false, true);
+    })
     .then(payload => {
       if (myReq !== _reqSeq) return;   // a newer refresh started — ignore this stale result
       saveToCache(payload);
@@ -2015,7 +2204,16 @@ function refresh(forceIndicator){
       setStatus('err', 'Sync failed');
       const msg = String(err && err.message || err);
       if (/password|authorized|unauthorized|email|role/i.test(msg)) {
-        lockDashboard(msg);
+        // Bare 'unauthorized' is the server's wire value, not a message meant
+        // for a human — say what it actually means, in the muted style. A
+        // session reaching its 6-hour limit is expected, not an error, and
+        // showing it in red made routine re-auth look like a broken dashboard.
+        if (msg === 'unauthorized'){
+          setStatus('ok', 'Signed out');
+          lockDashboard('Session timed out. Sign in again to continue.', 'info');
+        } else {
+          lockDashboard(msg);
+        }
         loadDashboardAuth().then(() => refresh(forceIndicator));
       } else {
         // Authentication succeeded, so do not strand the user behind the
@@ -2031,6 +2229,30 @@ function refresh(forceIndicator){
     });
 }
 async function startDashboard(){
+  // A non-absolute API_URL (a leftover placeholder like 'hide', or a redacted
+  // value) is NOT an obvious failure: fetch() resolves it relative to the page,
+  // so the request goes to your own host and comes back as a plain HTTP 404
+  // that looks like a dead Apps Script deployment. Catch it up front instead.
+  if (!/^https:\/\/script\.google\.com\//.test(CONFIG.API_URL || '')){
+    setStatus('err','Setup required');
+    showBanner('err',
+      'CONFIG.API_URL is not a valid Apps Script URL (currently: "' +
+      (CONFIG.API_URL || '') + '"). Paste the /exec URL from ' +
+      'Apps Script → Deploy → Manage deployments.');
+    document.getElementById('content').innerHTML = '';
+    return;
+  }
+
+  if (!CONFIG.GOOGLE_CLIENT_ID || CONFIG.GOOGLE_CLIENT_ID.indexOf('.apps.googleusercontent.com') < 0){
+    setStatus('err','Setup required');
+    showBanner('err',
+      'CONFIG.GOOGLE_CLIENT_ID is not a valid OAuth client ID (currently: "' +
+      (CONFIG.GOOGLE_CLIENT_ID || '') + '"). It should end in ' +
+      '.apps.googleusercontent.com');
+    document.getElementById('content').innerHTML = '';
+    return;
+  }
+
   if (!CONFIG.API_URL || CONFIG.API_URL.indexOf('PASTE_') === 0){
     setStatus('err','Setup required');
     showBanner('err', 'Configure API_URL in the dashboard settings.');
@@ -2132,10 +2354,7 @@ function valiaFetch(){
     cache: 'no-store',
     body: JSON.stringify({ action: 'valia' })
   })
-    .then(r => {
-      if (!r.ok) throw new Error('VALIA API returned HTTP ' + r.status);
-      return r.json();
-    })
+    .then(r => readApiJson(r, 'VALIA'))
     .then(data => {
       if (data && data.error) throw new Error(data.error);
       return data;
