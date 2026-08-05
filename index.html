@@ -460,28 +460,27 @@ input.inp:focus,select.inp:focus{border-color:var(--acc)}
           <option value="cpi-asc">Sort by CPI (low→high)</option>
           <option value="ctr">Sort by CTR</option>
         </select>
-        <select id="dateRange" class="inp">
-          <option value="today">Today</option>
-          <option value="single">Single date</option>
-          <!-- The server bounds this to CONFIG.MAX_RESPONSE_DAYS, which is 45,
-               not 90 — that number was left stale after the cap was lowered and
-               it is worth keeping honest, because it is the first thing anyone
-               checks when the default view looks short.
+        <!-- Every rolling preset is INCLUSIVE OF THE LATEST DAY: "Last N days"
+             means [today - (N-1) .. today], so today's partial figures are
+             always in view and the spans never disagree with each other.
 
-               Use Custom range to reach older rows. Those rows go back 60 days
-               (CONFIG KEEP_DAYS in archiveOldRows); anything older has been
-               moved to the archive spreadsheet named in ARCHIVE_SPREADSHEET_ID
-               and is no longer in the tab the dashboard reads. -->
-          <option value="all" selected>Default (last 45 days)</option>
-          <option value="1">Yesterday</option>
-          <option value="7">Last 7 days</option>
-          <option value="14">Last 14 days</option>
+             The numeric value IS the span — rangeForPreset() reads it with
+             parseInt, so adding another window here needs no JS change.
+
+             All of these are served locally: the 92-day extended window
+             (CONFIG.EXTENDED_DAYS) is loaded in the background after first
+             paint, and 90 <= 92, so switching between them costs no request.
+             Only a Custom range reaching further back asks the server. Those
+             rows go back KEEP_DAYS (120, in archiveOldRows in code.gs);
+             anything older has been moved to the archive spreadsheet named in
+             ARCHIVE_SPREADSHEET_ID and is no longer in the tab this reads. -->
+        <select id="dateRange" class="inp">
+          <option value="45" selected>Last 45 days</option>
           <option value="30">Last 30 days</option>
-          <!-- Matches CONFIG.LOOKBACK_DAYS — the window each sync actually
-               re-pulls, so every row in it is freshly rewritten. -->
-          <option value="45">Last 45 days</option>
-          <option value="last_month">Last month</option>
-          <option value="this_month">This month</option>
+          <option value="14">Last 14 days</option>
+          <option value="7">Last 7 days</option>
+          <option value="90">Last 90 days</option>
+          <option value="single">Single date</option>
           <option value="custom">Custom range</option>
         </select>
         <span id="singleDateWrap" class="date-group hidden">
@@ -619,7 +618,18 @@ const CONFIG = {
   GOOGLE_CLIENT_ID:  '1012644058552-coq3m55cofatssvlpbu07b0p668ql0i1.apps.googleusercontent.com',
   SHEET: 'applovin_data',
   GOOGLE_SHEET: 'google_ads_data',
-  CACHE_KEY: 'creativeDashCache_v22_server_google_agg',
+  CACHE_KEY: 'creativeDashCache_v23_ext_window',
+
+  // Days shown when the dashboard opens (the "Default" preset), and the size
+  // of the fast first-stage load. Matches CONFIG.MAX_RESPONSE_DAYS in code.gs.
+  DEFAULT_VIEW_DAYS: 45,
+
+  // Days loaded in the background after the first paint. Every date filter
+  // inside this window is answered locally with ZERO requests. 92 = a 90-day
+  // reach plus 2 days of slack so "Last 90 days" (which ends yesterday) still
+  // fits. MUST equal CONFIG.CACHE_WINDOW_DAYS in code.gs, or the background
+  // request misses the server's warmed cache entry.
+  EXTENDED_DAYS: 92,
   // The API reads the pre-aggregated applovin_data and google_ads_data tabs,
   // so a slow response almost always means a network/deployment problem.
   // Keep this modest and retry once instead of one long hung wait.
@@ -642,15 +652,10 @@ const CONFIG = {
   // Waiting is genuinely faster here. The answer usually arrives on its own.
   FETCH_TIMEOUT_MS: 360000,
 
-  // 0, NOT 1.
-  //
-  // This retried the ENTIRE fetch sequence on top of the per-request ladder,
-  // so one page load could put up to six data executions into Apps Script's
-  // per-user queue — the exact condition that made requests queue behind each
-  // other until the budget expired. Retrying now happens in one place only,
-  // inside fetchBothSheets, with a backoff long enough to let a previous
-  // execution drain first.
-  FETCH_RETRIES: 0,
+  // NOTE: there is deliberately no outer retry count. Retrying happens in one
+  // place only — inside requestSheets — with a backoff long enough to let a
+  // previous Apps Script execution drain first. An outer retry layer on top of
+  // that once put six competing executions into the per-user queue.
 
   // "Sync Now" is NOT a read. doPost runs the whole AppLovin pull inline before
   // it returns any data, so that single request legitimately takes minutes.
@@ -672,12 +677,22 @@ const COLOR = { Video:'#9b72f5', Playable:'#00e5c3', Image:'#4d9fff', accent:'#4
 let CREATIVES = [];     // processed, deduped, attributed per-asset daily records
 let META = { game:'', appLovinRefreshedAt:'', googleRefreshedAt:'', currencyCode:'USD', accountTimeZone:'' };
 let activeFormat = 'all';
-// Full history by default. Safe again now that responses are deduplicated:
-// each creative's metadata is sent once instead of once per day it ran.
-let appliedDatePreset = 'all';
+// The preset value IS the span in days. Matches the selected <option> in the
+// markup; bindFilters() re-reads it from the DOM on boot regardless.
+let appliedDatePreset = String(CONFIG.DEFAULT_VIEW_DAYS);
 let appliedSingleDate = '';
 let _isFetching = false;
 let _reqSeq = 0;
+
+// The extended dataset: the last CONFIG.EXTENDED_DAYS of both sheets, loaded
+// in the background after the first paint and persisted to localStorage.
+// While a requested range fits inside it, date changes never touch the server.
+//   { cachedAt, startDate, endDate, raw:{applovin,google}, payload? }
+let EXT = null;
+
+// What CREATIVES currently holds: 'ext' (the extended dataset) or 'range'
+// (a one-off server fetch for a range outside the extended window).
+let _creativesSource = '';
 let chartFormat = null, chartTop10 = null;
 /* ============================================================================
  * AUTH STATE
@@ -1291,29 +1306,39 @@ function cacheEntryIsCurrent(entry){
   return !!(entry && entry.cachedAt && entry.cachedAt >= lastDataBoundary());
 }
 
-/* Raw entry, including its timestamp. */
-function readCacheEntry(key){
+/* ---------------------------------------------------------------------------
+ * EXTENDED-WINDOW LOCAL CACHE — one entry, not one per range.
+ *
+ * The stored value is the RAW compact-v2 halves exactly as the server sent
+ * them, not the expanded payload: compact is several times smaller, which is
+ * what keeps a 90-day dataset inside the localStorage quota. It is expanded
+ * with buildPayload() on read, the same path a live response takes.
+ *
+ * A current entry (stored after the last daily boundary) means a page open
+ * costs ZERO requests: the sheets only change in the 5-7 AM write window, so
+ * the stored bytes are identical to what the server would return.
+ * ------------------------------------------------------------------------- */
+function extCacheKey(){ return CONFIG.CACHE_KEY + '|ext'; }
+
+function readExtendedCache(){
   try {
-    const raw = localStorage.getItem(key || cacheKeyForCurrentRange());
+    const raw = localStorage.getItem(extCacheKey());
     if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    // Entries written before this change have no wrapper — treat them as
-    // paintable but never as current, so they are refreshed once and upgraded.
-    if (parsed && parsed.cachedAt && parsed.payload) return parsed;
-    return { cachedAt: 0, payload: parsed };
+    const entry = JSON.parse(raw);
+    if (!entry || !entry.raw || !entry.startDate || !entry.endDate) return null;
+    return entry;
   } catch(e){ return null; }
 }
 
-function loadFromCache(){
-  const entry = readCacheEntry();
-  return entry ? entry.payload : null;
-}
-// NOTE: saveToCache lives with cacheKeyForCurrentRange() further down. An
-// earlier copy here wrote to the bare CONFIG.CACHE_KEY, which loadFromCache()
-// never reads — it was dead code that only looked like the real thing.
-
-function selectedSourceSheet(){
-  return CONFIG.SHEET;
+function saveExtendedCache(entry){
+  try {
+    localStorage.setItem(extCacheKey(), JSON.stringify({
+      cachedAt: entry.cachedAt,
+      startDate: entry.startDate,
+      endDate: entry.endDate,
+      raw: entry.raw,
+    }));
+  } catch(e){ /* quota or disabled — the dashboard just refetches next open */ }
 }
 
 // `tone` of 'info' renders the muted style instead of the red one. A session
@@ -1624,390 +1649,262 @@ function adminAddUser(){
     .then(() => { btn.disabled = false; });
 }
 
-function cacheKeyForCurrentRange(){
-  const r = rangeForPreset(appliedDatePreset);
-  return CONFIG.CACHE_KEY + '|' + selectedSourceSheet() + '|' + (r.startDate || 'all') + '|' + (r.endDate || 'all');
-}
-
-function saveToCache(data){
-  try {
-    localStorage.setItem(
-      cacheKeyForCurrentRange(),
-      JSON.stringify({ cachedAt: Date.now(), payload: data })
-    );
-  } catch(e){ /* quota or disabled — ignore */ }
-}
-
-/* Wipes every stored range. Used when something has genuinely changed the
-   underlying data, so no remembered answer can still be right. */
+/* Wipes every stored dashboard entry — current AND legacy cache versions
+   (the prefix predates the version suffix). Used when something has genuinely
+   changed the underlying data, so no remembered answer can still be right.
+   Deliberately does NOT touch the VALIA cache, which has its own key space. */
 function clearStoredRanges(){
   try {
     const doomed = [];
     for (let i = 0; i < localStorage.length; i++){
       const key = localStorage.key(i);
-      if (key && key.indexOf(CONFIG.CACHE_KEY) === 0) doomed.push(key);
+      if (key && key.indexOf('creativeDashCache') === 0) doomed.push(key);
     }
     doomed.forEach(key => localStorage.removeItem(key));
   } catch(e){ /* ignore */ }
 }
 
 /* ---------------------------------------------------------------------------
- * IN-MEMORY PAYLOAD CACHE + IN-FLIGHT DEDUP
+ * FETCH LAYER — three tiers, cheapest first.
  *
- * For the ranges that genuinely DO need the server — anything reaching further
- * back than what is loaded — this remembers the answer for the rest of the
- * session, so going back to a range costs nothing the second time.
+ *   1. EXT — the extended dataset (last CONFIG.EXTENDED_DAYS) held in memory
+ *      and localStorage. Any range inside it is filtered locally by
+ *      aggregate(); a date change costs ZERO requests.
+ *   2. _rangeCache — ranges older than the extended window, remembered for
+ *      the session after their one server fetch.
+ *   3. requestSheets() — the actual POST to Apps Script, used by both.
  *
- * The inflight map is the more important half. Without it, two things asking
- * for the same range at the same moment open TWO Apps Script executions, and
- * Apps Script serves one at a time per user, so the second queues behind the
- * first and both get slower. A page load in an earlier build was observed
- * fetching applovin_data twice, 263 kB each, for exactly this reason. Joining
- * an in-flight request instead of starting a second one is copied from the
- * monetization report, which has run this way without the problem.
- *
- * TTL is deliberately short. The sheets change once a day, but a session can
- * outlive that, and serving a range from a stale entry would be invisible.
+ * The inflight map matters as much as the caches. Apps Script serves ONE
+ * execution at a time per user, so two simultaneous asks for the same data
+ * must join one request rather than queue two executions behind each other —
+ * an earlier build was observed fetching applovin_data twice (263 kB each)
+ * on a single page load for exactly this reason.
  * ------------------------------------------------------------------------- */
 const RANGE_CACHE_TTL_MS = 15 * 60 * 1000;
 const _rangeCache = new Map();     // key -> { at, payload }
 const _rangeInflight = new Map();  // key -> Promise
 
-function rangeRequestKey(forceSync){
-  const r = rangeForPreset(appliedDatePreset);
-  return [selectedSourceSheet(), r.startDate || '', r.endDate || '', forceSync ? 'sync' : ''].join('|');
-}
-
 function clearRangeCache(){
   _rangeCache.clear();
 }
 
-// onPartial (optional) is called with a usable payload as soon as the AppLovin
-// sheet lands, before google_ads_data has been asked for. The two requests are
-// deliberately sequential (see below), so without this the user stares at the
-// login overlay for the duration of BOTH — the overlay only lifts inside
-// applyData(). Painting the first half early is the difference between "it
-// hangs" and "it loads, then fills in".
-function fetchDataOnce(forceSync, onPartial){
-  return new Promise((resolve, reject) => {
-    const range = rangeForPreset(appliedDatePreset);
-    const apiRange = apiRangeForFetch(range);
-    const sourceSheet = selectedSourceSheet();
-    const controller = new AbortController();
-    // A sync does the AppLovin pull server-side inside this same request.
-    const budgetMs = forceSync ? CONFIG.SYNC_TIMEOUT_MS : CONFIG.FETCH_TIMEOUT_MS;
-    const timeoutId = setTimeout(() => controller.abort(), budgetMs);
-
-    // BOTH SHEETS IN ONE REQUEST.
-    //
-    // This is the "load them together" fix. It is NOT two parallel fetches,
-    // and that distinction is the whole point.
-    //
-    // Apps Script runs ONE execution at a time PER USER. Two parallel POSTs do
-    // not execute in parallel — the second queues behind the first, and any
-    // retry queues behind both. Measured 2026-08-04: server executions
-    // completed in 2.5-4s while the browser saw `exec` take 10-25s. That gap
-    // was queue wait. The Executions list showed two doPost runs "Running" at
-    // once, and a single page load fetched applovin_data TWICE (263 kB, then
-    // 263 kB again). Going parallel would deepen that queue, not drain it —
-    // and the comment this replaces records parallel requests causing
-    // intermittent 404s on whichever request landed second.
-    //
-    // One request = one execution = nothing to queue behind, and both sheets
-    // arrive at the same instant. Combined payload is ~290 kB, so there was
-    // never a size reason to split them.
-    //
-    // RETRY POLICY — deliberately slower, deliberately fewer.
-    //
-    // The previous ladder was 1200ms/3000ms, three attempts PER SHEET, sitting
-    // under CONFIG.FETCH_RETRIES which retried the whole sequence again. One
-    // page load could therefore put six data executions into the queue. Worse,
-    // a 1200ms retry fires while the previous execution is still draining, so
-    // it joins the very queue that caused the failure.
-    //
-    // Now: at most two retries, starting at 6s, jittered so that several tabs
-    // failing at the same moment do not resynchronise onto the same instant.
-    const RETRYABLE_BACKOFF_MS = [6000, 12000];
-
-    const isRetryableStatus = (status) =>
-      status === 404 || status === 429 || status >= 500;
-
-    const withJitter = (ms) => Math.round(ms * (0.75 + Math.random() * 0.5));
-
-    const fetchBothSheets = (requestRange, attempt) => {
-      const fetchRange = requestRange || apiRange;
-      const tryNumber = attempt || 0;
-      // Secure POST: token in the body (text/plain -> no CORS preflight).
-      return fetch(CONFIG.API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        signal: controller.signal,
-        // RESTORED. index_old.html sent cache:'no-store' and worked for a
-        // month, so it is demonstrably not the cause of anything. I removed it
-        // on a hunch that it might force revalidation of the one-time echo URL
-        // — a guess, with no evidence, against a known-good configuration.
-        // Putting it back keeps the transport identical to the version that
-        // provably worked, so the only remaining differences are ones we chose
-        // deliberately and can defend.
-        cache: 'no-store',
-        body: JSON.stringify({
-          action: 'fetch_all',
-          token: SESSION_TOKEN,
-          sync: forceSync ? 'true' : '',
-          startDate: fetchRange.startDate || '',
-          endDate: fetchRange.endDate || '',
-          displayStartDate: range.startDate || '',
-          displayEndDate: range.endDate || '',
-        })
-      })
-        .then(r => {
-          if (
-            isRetryableStatus(r.status) &&
-            !forceSync &&
-            tryNumber < RETRYABLE_BACKOFF_MS.length
-          ) {
-            const waitMs = withJitter(RETRYABLE_BACKOFF_MS[tryNumber]);
-            return new Promise(done => setTimeout(done, waitMs))
-              .then(() => fetchBothSheets(requestRange, tryNumber + 1));
-          }
-          return readApiJson(r, 'dashboard data');
-        })
-        .then(data => {
-          // THE 302-BOUNCE CASE.
-          //
-          // The normal chain is: POST /exec -> 302 -> googleusercontent
-          // /macros/echo?user_content_key=... -> your JSON. When that one-time
-          // key is already dead, Google does not always answer 404. Sometimes
-          // it redirects the echo URL straight BACK to /exec — and a browser
-          // following a 302 after a POST re-issues it as a GET. doGet then runs
-          // and politely refuses with code 'get_not_supported'.
-          //
-          // So this is NOT a client bug and NOT a server refusal worth showing
-          // anyone. It is the same broken handoff that produces the 404s,
-          // wearing a different hat, and it deserves the same treatment: wait
-          // for the previous execution to drain, then POST again.
-          //
-          // The server ships that machine-readable `code` precisely so this
-          // check is possible; matching on the human sentence would break the
-          // moment anyone reworded it.
-          if (
-            data &&
-            data.code === 'get_not_supported' &&
-            !forceSync &&
-            tryNumber < RETRYABLE_BACKOFF_MS.length
-          ) {
-            const waitMs = withJitter(RETRYABLE_BACKOFF_MS[tryNumber]);
-            return new Promise(done => setTimeout(done, waitMs))
-              .then(() => fetchBothSheets(requestRange, tryNumber + 1));
-          }
-
-          if (data && data.error === 'unauthorized') {
-            // Token missing, expired, or revoked by an admin -> drop the whole
-            // session so the caller forces a fresh Google sign-in.
-            clearSession();
-            throw new Error('unauthorized');
-          }
-          if (data && data.error) throw new Error(data.error);
-
-          // Already unwrapped by a retry pass -> hand it straight back.
-          if (Array.isArray(data)) return data;
-
-          const appLovinData = (data && data.applovin) || {};
-          const googleAdsData = (data && data.google) || {};
-
-          const shapeOk = (part) => part && (
-            Array.isArray(part.rows) ||
-            (part.format === 'compact-v2' && Array.isArray(part.days))
-          );
-
-          // AppLovin must be present. Google Ads is allowed to arrive empty
-          // rather than taking the whole dashboard down with it.
-          if (!shapeOk(appLovinData)) {
-            throw new Error('Unexpected API response shape from applovin_data');
-          }
-
-          return [appLovinData, shapeOk(googleAdsData) ? googleAdsData : {}];
-        });
-    };
-
-    // Both halves now land together, so there is no half-loaded state left to
-    // paint. onPartial is still invoked — immediately, with the finished
-    // payload — so callers relying on it to lift the sign-in overlay keep
-    // working unchanged.
-    const fetchAllSheets = (requestRange, emitPartial) =>
-      fetchBothSheets(requestRange)
-        .then(result => {
-          if (emitPartial && onPartial){
-            // Never let a render error reject a request that actually succeeded.
-            try { onPartial(buildPayload(result)); } catch(e){}
-          }
-          return result;
-        });
-
-    // googleAdsData is {} on the partial pass. getTabRows({}) returns [], so
-    // every field below degrades to empty rather than throwing.
-    const buildPayload = ([appLovinData, googleAdsData]) => ({
-      game: appLovinData.game || googleAdsData.game || '',
-      appLovinRefreshedAt: appLovinData.refreshedAt || '',
-      googleRefreshedAt: googleAdsData.refreshedAt || '',
-      appLovinCreatives: parseAppLovinDataRows(getTabRows(appLovinData)),
-      googleCreatives: parseAppLovinDataRows(getTabRows(googleAdsData)),
-      currencyCode: appLovinData.currencyCode || googleAdsData.currencyCode || 'USD',
-
-      // accountToday() — which every date preset is built on — resolves "today"
-      // in the ad account's timezone, but this was hardcoded to '' so it always
-      // fell back to the BROWSER's local date. On a team several hours off the
-      // reporting timezone, "Today" and "Yesterday" silently covered the wrong
-      // day. The machinery was all there; it was just never fed.
-      //
-      // Read it from the response instead. creative.gs does not send it yet, so
-      // this still falls back to browser-local today — but the moment the
-      // server adds `accountTimeZone: Session.getScriptTimeZone()` to
-      // getCreativeData_, it starts working with no client change.
-      accountTimeZone: appLovinData.accountTimeZone || googleAdsData.accountTimeZone || '',
-      range,
-    });
-
-    fetchAllSheets(apiRange, true)
-      .then(result => {
-        const payload = buildPayload(result);
-
-        // No range means the server already decided the window, so there is
-        // nothing to fall back to. Checking anyway cost a full aggregate() over
-        // every creative on the default preset — computed, then discarded.
-        if (!range.startDate && !range.endDate) return payload;
-
-        const hasSelectedDateRows = aggregate(payload.appLovinCreatives.concat(payload.googleCreatives), range.startDate, range.endDate)
-          .some(row => row.daysActive > 0);
-        if (hasSelectedDateRows) return payload;
-
-        // Widen to everything the server will serve. No partial emit here —
-        // the screen is already painted from the pass above.
-        return fetchAllSheets({ startDate: '', endDate: '' }, false).then(buildPayload);
-      })
-      .then(payload => {
-        clearTimeout(timeoutId);
-        resolve(payload);
-      })
-      .catch(err => {
-        clearTimeout(timeoutId);
-        reject(err.name === 'AbortError'
-          ? new Error(
-              (forceSync
-                ? 'Sync did not finish within ' + (budgetMs/1000) + 's. It may still be running in Apps Script — check Executions before starting another.'
-                : 'Request timed out after ' + (budgetMs/1000) + 's — check API_URL and that the Apps Script deployment is still active.'))
-          : err);
-      });
-  });
+// The window the extended dataset covers when fetched right now.
+function extendedWindowRange(){
+  const today = accountToday();
+  const start = new Date(today);
+  start.setDate(today.getDate() - (CONFIG.EXTENDED_DAYS - 1));
+  return { startDate: ymd(start), endDate: ymd(today) };
 }
 
-function fetchData(forceSync, onPartial, attemptsLeft){
-  // Cache and dedup wrap ONLY the first attempt. A retry is already inside
-  // fetchDataUncached, and re-entering here would key a retry as a new request.
-  if (attemptsLeft === undefined){
-    const key = rangeRequestKey(forceSync);
+// True when `inner` (an explicit range) lies fully inside `outer`.
+function rangeWithin(inner, outer){
+  if (!inner || !inner.startDate || !inner.endDate) return false;
+  if (!outer || !outer.startDate || !outer.endDate) return false;
+  return inner.startDate >= outer.startDate && inner.endDate <= outer.endDate;
+}
 
-    // A sync must always hit the server — that is the entire point of it.
-    if (!forceSync){
-      // 1. Stored on this browser, and stored AFTER the last daily boundary.
-      //    Nothing has written to the sheets since, so this payload is not
-      //    merely recent — it is identical to what the server would return.
-      //    This is the case that makes a second visit cost ZERO requests.
-      const stored = readCacheEntry(cacheKeyForCurrentRange());
-      if (cacheEntryIsCurrent(stored)){
-        _rangeCache.set(key, { at: Date.now(), payload: stored.payload });
-        return Promise.resolve(stored.payload);
-      }
+/* ---------------------------------------------------------------------------
+ * TRANSPORT — one POST to doPost, with retries for the two ways an Apps
+ * Script call fails in transit: a 404/429/5xx from the one-time
+ * googleusercontent echo hop, and the 302-bounce that re-issues the POST as a
+ * GET so doGet answers with code 'get_not_supported' (proof doPost never
+ * ran). Backoffs are long and jittered on purpose — an immediate retry joins
+ * the very queue that dropped the first request.
+ * ------------------------------------------------------------------------- */
+const FETCH_BACKOFF_MS = [6000, 12000];
 
-      // 2. Fetched already in THIS session.
-      const hit = _rangeCache.get(key);
-      if (hit && (Date.now() - hit.at) < RANGE_CACHE_TTL_MS){
-        // Resolve async so callers still get a Promise and onPartial ordering
-        // stays the same as a real fetch.
-        return Promise.resolve(hit.payload);
-      }
+function requestSheets(bodyParams){
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), CONFIG.FETCH_TIMEOUT_MS);
+  const withJitter = ms => Math.round(ms * (0.75 + Math.random() * 0.5));
+  const isRetryableStatus = s => s === 404 || s === 429 || s >= 500;
+  const wait = ms => new Promise(done => setTimeout(done, withJitter(ms)));
 
-      // Someone is already asking for exactly this. Join them rather than
-      // opening a second Apps Script execution that will only queue behind it.
-      const pending = _rangeInflight.get(key);
-      if (pending) return pending;
-    }
-
-    const request = fetchDataUncached(forceSync, onPartial)
-      .then(payload => {
-        if (!forceSync) _rangeCache.set(key, { at: Date.now(), payload: payload });
-        return payload;
+  const attempt = tryNumber =>
+    fetch(CONFIG.API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      signal: controller.signal,
+      cache: 'no-store',
+      body: JSON.stringify(Object.assign(
+        { action: 'fetch_all', token: SESSION_TOKEN }, bodyParams))
+    })
+      .then(r => {
+        if (isRetryableStatus(r.status) && tryNumber < FETCH_BACKOFF_MS.length){
+          return wait(FETCH_BACKOFF_MS[tryNumber]).then(() => attempt(tryNumber + 1));
+        }
+        return readApiJson(r, 'dashboard data');
       })
-      .finally(() => { _rangeInflight.delete(key); });
+      .then(data => {
+        if (data && data.code === 'get_not_supported' && tryNumber < FETCH_BACKOFF_MS.length){
+          return wait(FETCH_BACKOFF_MS[tryNumber]).then(() => attempt(tryNumber + 1));
+        }
+        if (data && data.error === 'unauthorized'){
+          // Token missing, expired, or revoked by an admin -> drop the whole
+          // session so the caller forces a fresh Google sign-in.
+          clearSession();
+          throw new Error('unauthorized');
+        }
+        if (data && data.error) throw new Error(data.error);
+        return data;
+      });
 
-    _rangeInflight.set(key, request);
-    return request;
+  return attempt(0)
+    .catch(err => {
+      throw (err && err.name === 'AbortError')
+        ? new Error('Request timed out after ' + (CONFIG.FETCH_TIMEOUT_MS / 1000) +
+            's — check API_URL and that the Apps Script deployment is still active.')
+        : err;
+    })
+    .finally(() => clearTimeout(timeoutId));
+}
+
+// Turns a raw fetch_all response into the payload applyData() consumes.
+function buildPayload(data){
+  const appLovinData = (data && data.applovin) || {};
+  const googleAdsData = (data && data.google) || {};
+
+  const shapeOk = part => part && (
+    Array.isArray(part.rows) ||
+    (part.format === 'compact-v2' && Array.isArray(part.days))
+  );
+
+  // AppLovin must be present. Google Ads is allowed to arrive empty rather
+  // than taking the whole dashboard down with it.
+  if (!shapeOk(appLovinData)) {
+    throw new Error('Unexpected API response shape from applovin_data');
   }
 
-  return fetchDataUncached(forceSync, onPartial, attemptsLeft);
+  return {
+    game: appLovinData.game || googleAdsData.game || '',
+    appLovinRefreshedAt: appLovinData.refreshedAt || '',
+    googleRefreshedAt: googleAdsData.refreshedAt || '',
+    appLovinCreatives: parseAppLovinDataRows(getTabRows(appLovinData)),
+    googleCreatives: parseAppLovinDataRows(getTabRows(shapeOk(googleAdsData) ? googleAdsData : {})),
+    currencyCode: appLovinData.currencyCode || googleAdsData.currencyCode || 'USD',
+    // Resolves "today" in the ad account's timezone once the server sends it;
+    // falls back to browser-local today until then.
+    accountTimeZone: appLovinData.accountTimeZone || googleAdsData.accountTimeZone || '',
+  };
 }
 
-function fetchDataUncached(forceSync, onPartial, attemptsLeft){
-  if (attemptsLeft === undefined) attemptsLeft = CONFIG.FETCH_RETRIES;
-  return fetchDataOnce(forceSync, onPartial).catch(err => {
-    const msg = String(err && err.message || err);
+/* Window fetch: {} for the default 45 days, {days: N} for the extended
+ * window. Both are the exact params warmPayloadCache keeps warm server-side,
+ * so these are normally cache HITS answered in well under a second of server
+ * time. Returns { raw, payload } — raw is what gets stored in localStorage
+ * (compact, several times smaller), payload is what gets painted. */
+function fetchWindow(params){
+  const key = 'win|' + JSON.stringify(params || {});
+  const pending = _rangeInflight.get(key);
+  if (pending) return pending;
 
-    // An expired or revoked session fails identically every time. Retrying it
-    // only doubles the wait before the user is told to sign in again.
-    if (msg === 'unauthorized') throw err;
+  const request = requestSheets(params || {})
+    .then(data => ({
+      raw: { applovin: data.applovin, google: data.google },
+      payload: buildPayload(data),
+    }))
+    .finally(() => { _rangeInflight.delete(key); });
 
-    // Never auto-retry a sync. The first one is very likely still running on
-    // the server (aborting the fetch does not stop Apps Script), so a retry
-    // either duplicates the whole AppLovin pull or is rejected by the script
-    // lock with "Another Apps Script dashboard sync is already running."
-    if (forceSync) throw err;
-
-    if (attemptsLeft > 0) return fetchDataUncached(forceSync, onPartial, attemptsLeft - 1);
-    throw err;
-  });
+  _rangeInflight.set(key, request);
+  return request;
 }
+
+/* Range fetch: explicit dates outside the extended window (old custom
+ * ranges). Remembered for the session; simultaneous asks join one request. */
+function fetchRange(range){
+  const key = 'range|' + (range.startDate || '') + '|' + (range.endDate || '');
+
+  const hit = _rangeCache.get(key);
+  if (hit && (Date.now() - hit.at) < RANGE_CACHE_TTL_MS){
+    return Promise.resolve(hit.payload);
+  }
+
+  const pending = _rangeInflight.get(key);
+  if (pending) return pending;
+
+  // Widened a day each side (apiRangeForFetch) so timezone skew between the
+  // browser and the sheet cannot clip a boundary day; aggregate() still cuts
+  // the view to the exact range.
+  const apiRange = apiRangeForFetch(range);
+
+  const request = requestSheets({
+    startDate: apiRange.startDate || '',
+    endDate: apiRange.endDate || '',
+  })
+    .then(buildPayload)
+    .then(payload => {
+      _rangeCache.set(key, { at: Date.now(), payload: payload });
+      return payload;
+    })
+    .finally(() => { _rangeInflight.delete(key); });
+
+  _rangeInflight.set(key, request);
+  return request;
+}
+
+/* NOTE: fetchDataOnce / fetchData / fetchDataUncached are gone. The staged
+ * load in refresh() + the fetchWindow / fetchRange tier above replaced them:
+ * the "both sheets in one request" rule, the slow jittered retries, and the
+ * in-flight dedup all live on inside requestSheets/fetchWindow/fetchRange. */
 
 /* ---------------------------------------------------------------------------
  * AGGREGATION for the selected date range
  * ------------------------------------------------------------------------- */
-function rangeForPreset(value){
+/* Span in days for a rolling preset. Anything unrecognised — including a
+   preset value left over from an older build in a restored session — falls
+   back to the default window rather than producing an empty range. */
+function presetSpanDays(value){
+  const days = parseInt(value, 10);
+  return (isFinite(days) && days > 0) ? days : CONFIG.DEFAULT_VIEW_DAYS;
+}
+
+/* The last `days` days, INCLUSIVE of the latest day. */
+function rollingRange(days){
   const today = accountToday();
-  if (value === 'all') return { startDate:'', endDate:'' };
-  if (value === 'today') return { startDate: ymd(today), endDate: ymd(today) };
+  const start = new Date(today);
+  start.setDate(today.getDate() - (days - 1));
+  return { startDate: ymd(start), endDate: ymd(today) };
+}
+
+/* The window the server treats as its default, used to decide whether the
+   fast first-stage load can cover the current view. */
+function defaultWindowRange(){
+  return rollingRange(CONFIG.DEFAULT_VIEW_DAYS);
+}
+
+function rangeForPreset(value){
   if (value === 'single'){
-    const picked = appliedSingleDate || ymd(today);
+    const picked = appliedSingleDate || ymd(accountToday());
     return { startDate: picked, endDate: picked };
   }
-  if (value === 'custom') return { startDate: document.getElementById('customStart').value||'', endDate: document.getElementById('customEnd').value||'' };
-  if (value === 'last_month'){
-    const firstOfThis = new Date(today.getFullYear(), today.getMonth(), 1);
-    const lastOfPrev = new Date(firstOfThis.getTime()-86400000);
-    const firstOfPrev = new Date(lastOfPrev.getFullYear(), lastOfPrev.getMonth(), 1);
-    return { startDate: ymd(firstOfPrev), endDate: ymd(lastOfPrev) };
+
+  if (value === 'custom'){
+    return {
+      startDate: document.getElementById('customStart').value || '',
+      endDate: document.getElementById('customEnd').value || '',
+    };
   }
-  if (value === 'this_month'){
-    const first = new Date(today.getFullYear(), today.getMonth(), 1);
-    return { startDate: ymd(first), endDate: ymd(today) };
-  }
-  const days = parseInt(value,10);
-  if (days === 1){
-    const y = new Date(today); y.setDate(today.getDate()-1);
-    return { startDate: ymd(y), endDate: ymd(y) };
-  }
-  const start = new Date(today); start.setDate(today.getDate()-days);
-  const end = new Date(today); end.setDate(today.getDate()-1);
-  return { startDate: ymd(start), endDate: ymd(end) };
+
+  return rollingRange(presetSpanDays(value));
 }
+
 function presetLabel(value){
-  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  if (value === 'all') return 'Default (last 45 days)';
-  if (value === 'today') return 'Today';
   if (value === 'single') return 'Single date';
   if (value === 'custom') return 'Custom range';
-  if (value === 'last_month'){ const d=new Date(); const l=new Date(d.getFullYear(),d.getMonth()-1,1); return months[l.getMonth()]+' '+l.getFullYear(); }
-  if (value === 'this_month'){ const d=new Date(); return months[d.getMonth()]+' '+d.getFullYear()+' (so far)'; }
-  if (value === '1') return 'Yesterday';
-  return 'Last '+value+' days';
+  return 'Last ' + presetSpanDays(value) + ' days';
+}
+
+/* The from → to actually being shown, always spelled out. A single day is
+   printed once rather than as "X → X". */
+function rangeLabel(range){
+  if (range.startDate && range.endDate){
+    return range.startDate === range.endDate
+      ? range.startDate
+      : range.startDate + ' → ' + range.endDate;
+  }
+  if (range.startDate) return 'from ' + range.startDate;
+  if (range.endDate) return 'up to ' + range.endDate;
+  return 'no dates selected';
 }
 
 function aggregate(creatives, startDate, endDate){
@@ -2102,9 +1999,11 @@ function dataFreshnessSuffix(){
 function updateLabels(){
   const range = rangeForPreset(appliedDatePreset);
   document.getElementById('sbGame').textContent = META.game || 'Creative Analytics BI';
+  // The from → to is ALWAYS shown, for every preset — a spend figure is
+  // meaningless without the window it covers.
   document.getElementById('pageSub').textContent =
     (META.game ? META.game + ' · ' : '') + presetLabel(appliedDatePreset) +
-    (range.startDate && range.endDate ? ' (' + range.startDate + ' → ' + range.endDate + ')' : '') +
+    ' · ' + rangeLabel(range) +
     dataFreshnessSuffix();
   document.getElementById('sbRefreshed').textContent = 'AppLovin: ' + (META.appLovinRefreshedAt || '—') + ' · Google Ads: ' + (META.googleRefreshedAt || '—');
 }
@@ -2274,21 +2173,158 @@ var _gridObserver = null;
 var _gridRows = [];
 var _gridDrawn = 0;
 
+/* ---------------------------------------------------------------------------
+ * CARD NODE CACHE
+ *
+ * Filter changes used to throw the whole grid away (innerHTML) and rebuild
+ * every card from a string. That destroyed each loaded <video> along with it,
+ * so the browser re-downloaded and re-decoded the SAME frames on the very next
+ * click — All -> AppLovin -> All paid that cost three times over. It is why
+ * AppLovin (~250 videos) lagged while Google Ads (mostly static <img> cards)
+ * did not.
+ *
+ * Cards are now built once and kept. A filter change re-appends the SAME nodes
+ * in a new order, so their media stays loaded and the work collapses to moving
+ * elements around.
+ *
+ * The cache is keyed to _aggCache.key — the selected date range plus the
+ * dataset identity. Card METRICS depend on the range, so when that changes the
+ * cache is dropped and the cards rebuild with the new numbers. Network,
+ * format, search and sort never change a card's numbers, only which cards are
+ * shown and in what order, which is exactly why they can reuse nodes safely.
+ * ------------------------------------------------------------------------- */
+const _cardNodes = new Map();
+let _cardCacheToken = '';
+
+function cardKeyFor(r){
+  return (r.network || '') + '|' + (r.campaignId || '') + '|' + (r.id || '');
+}
+
+/* Rank badge and click index depend on POSITION, which moves whenever the
+   sort or filter changes, so they are refreshed every time a node is placed. */
+function applyCardPosition(node, i){
+  node.setAttribute('data-idx', i);
+
+  let rank = node.querySelector('.asset-rank');
+  if (i < 3){
+    if (!rank){
+      rank = document.createElement('div');
+      rank.className = 'asset-rank';
+      node.insertBefore(rank, node.firstChild);
+    }
+    rank.textContent = '#' + (i + 1);
+  } else if (rank){
+    rank.remove();
+  }
+
+  // Re-inserting a node restarts its CSS animation, so a card that already
+  // made its entrance would replay the 300ms staggered fade on EVERY filter
+  // change — up to 560ms of the grid visibly reassembling for no reason.
+  // Let each card animate in exactly once.
+  if (node.dataset.seen) node.style.animation = 'none';
+  else node.dataset.seen = '1';
+}
+
+function cardNodeFor(r, i){
+  const key = cardKeyFor(r);
+  let node = _cardNodes.get(key);
+
+  if (!node){
+    const holder = document.createElement('div');
+    holder.innerHTML = cardHtml(r, i);
+    node = holder.firstElementChild;
+    if (!node) return null;
+    _cardNodes.set(key, node);
+  }
+
+  applyCardPosition(node, i);
+  return node;
+}
+
 function appendCardBatch(){
   const grid = document.getElementById('assetGrid');
   if (!grid) return;
   const end = Math.min(_gridDrawn + GRID_BATCH, _gridRows.length);
-  let html = '';
-  for (let i = _gridDrawn; i < end; i++) html += cardHtml(_gridRows[i], i);
-  grid.insertAdjacentHTML('beforeend', html);
+
+  // One fragment, one insertion — appending nodes one by one would lay the
+  // grid out once per card.
+  const frag = document.createDocumentFragment();
+  for (let i = _gridDrawn; i < end; i++){
+    const node = cardNodeFor(_gridRows[i], i);
+    if (node) frag.appendChild(node);
+  }
+  grid.appendChild(frag);
+
   _gridDrawn = end;
+  observeNewVideoThumbs();
+}
+
+/* ---------------------------------------------------------------------------
+ * LAZY VIDEO THUMBNAILS
+ *
+ * Card <video> elements are emitted with data-src and no src, so they cost
+ * nothing at render time. This observer assigns the real src only when a card
+ * comes within a screen of the viewport — after which the browser fetches
+ * metadata, seeks to 0.1s and paints the frame. Concurrent media loads are
+ * therefore bounded by what is (nearly) on screen, never by how many videos
+ * the current filter matched. <img> gets this for free via loading="lazy";
+ * <video> has no equivalent attribute, hence doing it by hand.
+ * ------------------------------------------------------------------------- */
+let _videoThumbObserver = null;
+
+function hydrateVideoThumb(el){
+  if (!el || !el.dataset || !el.dataset.src) return;
+  if (!el.getAttribute('src')) el.setAttribute('src', el.dataset.src);
+}
+
+function observeNewVideoThumbs(){
+  const grid = document.getElementById('assetGrid');
+  if (!grid) return;
+
+  // ":not([src])" is the whole bookkeeping: a video that already hydrated has
+  // a src and is skipped, one that has not is (re-)observed. That matters now
+  // that nodes are reused — a card cached before it ever scrolled into view
+  // must still be watched by the NEW observer, or its thumbnail would stay
+  // blank forever. Re-observing an already-observed target is a no-op.
+  const pending = grid.querySelectorAll('video[data-src]:not([src])');
+  if (!pending.length) return;
+
+  // No observer support -> load immediately; correct, just not lazy.
+  if (typeof IntersectionObserver !== 'function'){
+    pending.forEach(hydrateVideoThumb);
+    return;
+  }
+
+  if (!_videoThumbObserver){
+    _videoThumbObserver = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        hydrateVideoThumb(entry.target);
+        _videoThumbObserver.unobserve(entry.target);
+      });
+    }, { root: null, rootMargin: '600px 0px' });   // one screen of lookahead
+  }
+
+  pending.forEach(el => _videoThumbObserver.observe(el));
 }
 
 function renderGrid(rows){
   const el = document.getElementById('content');
 
-  // Tear down the previous cycle's observer so it can't fire on stale data.
+  // Tear down the previous cycle's observers so they can't fire on stale data.
+  // Cached card nodes survive this — they are detached, not destroyed, which
+  // is what keeps their loaded video frames alive across a filter change.
   if (_gridObserver){ try { _gridObserver.disconnect(); } catch(e){} _gridObserver = null; }
+  if (_videoThumbObserver){ try { _videoThumbObserver.disconnect(); } catch(e){} _videoThumbObserver = null; }
+
+  // Drop cached cards only when the NUMBERS on them could have changed, i.e.
+  // a new date range or a new dataset. _aggCache.key is exactly that identity.
+  // Filter and sort changes leave it untouched, so their cards are reused.
+  const cacheToken = _aggCache.key || '';
+  if (cacheToken !== _cardCacheToken){
+    _cardNodes.clear();
+    _cardCacheToken = cacheToken;
+  }
   _gridRows = rows;
   _gridDrawn = 0;
 
@@ -2451,9 +2487,22 @@ function thumbHtml(r){
 
   // Only actual video URLs are passed to the video player.
   if (isVideoUrl(u)) {
+    // data-src, NOT src — deliberately inert until hydrated.
+    //
+    // With src set directly, EVERY video card opened its network request and
+    // decoded a frame the instant the grid rendered. On the AppLovin filter
+    // (~250 videos) that meant hundreds of simultaneous media loads, which is
+    // exactly the lag the Google Ads filter (mostly static <img> cards) never
+    // showed. observeNewVideoThumbs() assigns the real src only when a card
+    // nears the viewport, so videos now load like the lazy images do.
+    //
+    // The #t=0.1 media fragment stays: preload="metadata" alone commonly
+    // paints a black frame; seeking to 0.1s forces a real picture. Skipped
+    // when the URL already carries a fragment — a second '#' would corrupt it.
+    const thumbUrl = url.indexOf('#') === -1 ? url + '#t=0.1' : url;
     return '<video ' +
-      'src="' + escapeHtml(url) + '" ' +
-      'muted playsinline preload="none">' +
+      'data-src="' + escapeHtml(thumbUrl) + '" ' +
+      'muted playsinline preload="metadata">' +
     '</video>';
   }
 
@@ -2692,8 +2741,15 @@ function bindFilters(){
     appliedDatePreset = 'single';
     applyDateChange();
   });
-  on('customStart', 'change', () => { applyDateChange(); });
-  on('customEnd', 'change', () => { applyDateChange(); });
+  // Both ends must be set before this means anything. Without the guard,
+  // clearing one input fires a request for an open-ended range and the header
+  // reads "no dates selected" while the grid repaints for no reason.
+  const customRangeReady = () =>
+    !!(document.getElementById('customStart').value &&
+       document.getElementById('customEnd').value);
+
+  on('customStart', 'change', () => { if (customRangeReady()) applyDateChange(); });
+  on('customEnd', 'change', () => { if (customRangeReady()) applyDateChange(); });
   updateDateInputs();
 
   document.querySelectorAll('[data-fmt]').forEach(btn => {
@@ -2717,6 +2773,8 @@ function bindFilters(){
   on('reloadBtn', 'click', () => {
     clearRangeCache();
     clearStoredRanges();
+    EXT = null;               // force a genuine re-read, not a local replay
+    _creativesSource = '';
     refresh(false);
   });
 
@@ -2749,39 +2807,63 @@ function bindFilters(){
 // in flight. Everything renders, but the empty-state warning is suppressed
 // (it would be wrong) and the status says so instead of claiming "Live".
 /* ---------------------------------------------------------------------------
- * WHY DATE CHANGES STILL ASK THE SERVER — I shipped the opposite and it broke.
+ * DATE CHANGES ARE LOCAL NOW — this used to refetch, and here is why it can't
+ * break the way the last attempt did.
  *
- * The idea was that CREATIVES holds raw per-day rows, so a narrower window is
- * just a subset already in memory and needs no request. That is TRUE FOR
- * APPLOVIN and FALSE FOR GOOGLE ADS, and I only checked the half that worked.
+ * The old failure: google_ads_data was aggregated on the SERVER per display
+ * window, with every bucket stamped with a single date (the window's end), so
+ * Google rows in memory carried no real dates and could not be re-windowed
+ * locally. getCreativeData_ in code.gs now serves Google Ads as DAILY rows
+ * through the same path as AppLovin — every row carries the day it happened
+ * on — so aggregate() windows both networks correctly in the browser.
  *
- * getCreativeData_ pre-aggregates google_ads_data on the SERVER: it collapses
- * every daily row into one bucket per creative and then stamps them all with a
- * SINGLE date —
- *
- *     setRowValue_(output, 'date', responseDate || ymd_(new Date()));
- *     // responseDate = dashboardParams.endDate || newestDateFromRows_(rows)
- *
- * So Google rows in memory do not carry the day they happened on; they carry
- * the END of the window they were aggregated for. Narrow the window in the
- * browser and every one of them falls outside it. That is exactly what was
- * seen on "Last 7 days": AppLovin fine, Google Ads showing 0 creatives and $0.
- *
- * Only the server can re-aggregate Google Ads for a new window, which is what
- * displayStartDate / displayEndDate exist for. So a date change refetches.
- *
- * WHAT IS KEPT: the range cache and in-flight dedup in fetchData(). A range
- * you have already viewed comes back instantly from memory, and two
- * simultaneous asks for the same range still open only ONE Apps Script
- * execution. Neither can invent a number the server did not compute, which is
- * the difference between those and what was removed here.
+ * Any range inside the extended dataset (last CONFIG.EXTENDED_DAYS) is
+ * therefore answered without a request. Only ranges reaching further back go
+ * to the server, through fetchRange()'s session cache and in-flight dedup.
  * ------------------------------------------------------------------------- */
 function applyDateChange(){
   updateLabels();
+  const range = rangeForPreset(appliedDatePreset);
+
+  if (EXT && rangeWithin(range, EXT)){
+    if (_creativesSource !== 'ext'){
+      // CREATIVES currently holds a one-off out-of-window payload — put the
+      // extended dataset back. Costs a parse at most, never a request.
+      applyExtended(false);
+    } else {
+      render();
+    }
+    return;
+  }
+
   refresh(false);
 }
 
-function applyData(payload, fromCache, partial){
+/* Paints the extended dataset. The expanded payload is built lazily from the
+ * stored compact halves and then kept, so repeated preset hops are free. */
+function applyExtended(fromCache){
+  if (!EXT) return;
+  if (!EXT.payload) EXT.payload = buildPayload(EXT.raw);
+  applyData(EXT.payload, fromCache, 'ext');
+}
+
+/* Swaps the extended dataset in WITHOUT a repaint — used when the visible
+ * window is already fully covered by what is on screen, so re-rendering would
+ * rebuild an identical grid. Later render() calls see the wider data. */
+function swapInExtended(){
+  if (!EXT) return;
+  if (!EXT.payload) EXT.payload = buildPayload(EXT.raw);
+  const payload = EXT.payload;
+  META = { game: payload.game, appLovinRefreshedAt: payload.appLovinRefreshedAt,
+    googleRefreshedAt: payload.googleRefreshedAt, currencyCode: payload.currencyCode || 'USD',
+    accountTimeZone: payload.accountTimeZone || '' };
+  CREATIVES = (payload.appLovinCreatives || []).concat(payload.googleCreatives || []);
+  invalidateAggregateCache();
+  _creativesSource = 'ext';
+  updateLabels();
+}
+
+function applyData(payload, fromCache, source){
   unlockDashboard();
   applyRoleUI();
   META = { game: payload.game, appLovinRefreshedAt: payload.appLovinRefreshedAt,
@@ -2789,17 +2871,14 @@ function applyData(payload, fromCache, partial){
     accountTimeZone: payload.accountTimeZone || '' };
   CREATIVES = (payload.appLovinCreatives || []).concat(payload.googleCreatives || []);
   invalidateAggregateCache();   // CREATIVES replaced — any memoised rows are stale
+  _creativesSource = source || 'range';
   updateLabels();
   clearBanner();
-  if (!CREATIVES.length && !partial){
+  if (!CREATIVES.length){
     showBanner('warn', 'No AppLovin or Google Ads creative rows matched the selected date range.');
   }
   render();
-  if (partial){
-    setStatus('ok', 'Loading Google Ads…');
-  } else {
-    setStatus('ok', fromCache ? 'Showing cached data' : 'Live');
-  }
+  setStatus('ok', fromCache ? 'Showing cached data' : 'Live');
 }
 
 /* ---------------------------------------------------------------------------
@@ -2964,12 +3043,15 @@ function watchSync(startedAt){
 
     // done / idle -> the data on the server is fresh.
     //
-    // CLEAR THE RANGE CACHE FIRST. Every range remembered in this session was
-    // computed from PRE-sync sheets, so serving any of them now would show the
-    // user old numbers immediately after the sync that was supposed to replace
-    // them — silently, because a cache hit looks exactly like a fresh fetch.
+    // CLEAR EVERY LOCAL COPY FIRST. Every range remembered in this session —
+    // including the extended dataset — was computed from PRE-sync sheets, so
+    // serving any of it now would show old numbers immediately after the sync
+    // that was supposed to replace them — silently, because a cache hit looks
+    // exactly like a fresh fetch.
     clearRangeCache();
     clearStoredRanges();
+    EXT = null;
+    _creativesSource = '';
 
     showBanner('ok', state.message || 'Sync finished — loading fresh data…');
     setSyncBusy(false);
@@ -2994,31 +3076,100 @@ async function resumeSyncIfRunning(){
   } catch (e) { /* not worth surfacing */ }
 }
 
+/* ---------------------------------------------------------------------------
+ * THE STAGED LOAD
+ *
+ * Stage 1 fetches the default 45-day window — the smallest payload, kept warm
+ * server-side — and paints it, so the dashboard is usable fast. Stage 2 then
+ * fetches the extended window (CONFIG.EXTENDED_DAYS, also warm) in the
+ * background and swaps it in, after which every date filter inside it is
+ * local. The stages run sequentially on purpose: Apps Script executes one
+ * request at a time per user, so firing both at once would just queue stage 1
+ * behind stage 2 and delay the first paint.
+ * ------------------------------------------------------------------------- */
+async function loadWithinWindow(myReq, viewRange){
+  const coveredByDefault = rangeWithin(viewRange, defaultWindowRange());
+
+  // Stage 1 — skipped when the current view needs days beyond the default
+  // window (e.g. a single date seven weeks back): painting a window that
+  // cannot contain the view would flash a wrong "no creatives match".
+  if (coveredByDefault){
+    const first = await fetchWindow({});
+    if (myReq === _reqSeq) applyData(first.payload, false, 'range');
+  }
+
+  // Stage 2 — the extended window, loaded in the background.
+  try {
+    const extended = await fetchWindow({ days: CONFIG.EXTENDED_DAYS });
+    const win = extendedWindowRange();
+    EXT = {
+      cachedAt: Date.now(),
+      startDate: win.startDate,
+      endDate: win.endDate,
+      raw: extended.raw,
+      payload: extended.payload,
+    };
+    saveExtendedCache(EXT);
+  } catch (err){
+    if (String(err && err.message || err) === 'unauthorized') throw err;
+    // Stage 1 already painted a correct 45-day view; losing only the older
+    // days is not worth an error screen. Ranges beyond 45 days will fall back
+    // to per-range fetches until the next successful extended load.
+    if (!coveredByDefault || myReq !== _reqSeq) throw err;
+    console.warn('Extended-window load failed (45-day view is live):', err);
+    return;
+  }
+
+  if (myReq !== _reqSeq) return;   // a newer refresh started — stand down
+
+  const current = rangeForPreset(appliedDatePreset);
+  if (!rangeWithin(current, EXT)) return;   // user moved out of window meanwhile
+
+  if (coveredByDefault && _creativesSource === 'range'){
+    // The visible rows are identical in both datasets — swap the data in
+    // without rebuilding the grid the user is already looking at.
+    swapInExtended();
+  } else {
+    applyExtended(false);
+  }
+}
+
+function loadOutsideWindow(myReq, range){
+  return fetchRange(range).then(payload => {
+    if (myReq !== _reqSeq) return;
+    applyData(payload, false, 'range');
+  });
+}
+
 function refresh(forceIndicator){
   const btn = document.getElementById('reloadBtn');
   const icn = document.getElementById('reloadIcn');
   const myReq = ++_reqSeq;          // tag this request as the newest
   btn.disabled = true;
   icn.classList.add('spinning');
-  setStatus('ok', forceIndicator ? 'Syncing...' : 'Loading...');
-  showBanner('warn', 'Loading data...');
-  renderSkeleton(8);
   _isFetching = true;
-  if (forceIndicator){ btn.disabled = true; icn.classList.add('spinning'); setStatus('ok','Syncing…'); }
-  fetchData(forceIndicator, partial => {
-      if (myReq !== _reqSeq) return;   // a newer refresh started — drop this paint
-      // First paint: lifts the sign-in overlay as soon as AppLovin is in,
-      // instead of holding it until google_ads_data has also been fetched.
-      applyData(partial, false, true);
-    })
-    .then(payload => {
-      if (myReq !== _reqSeq) return;   // a newer refresh started — ignore this stale result
-      saveToCache(payload);
-      applyData(payload, false);
-    })
+
+  // Keep whatever is already painted while refreshing behind it. The old
+  // behaviour wiped real cards with a skeleton on every refresh, which made a
+  // stale-cache open FEEL slow even though data was already on screen.
+  const alreadyPainted = Array.isArray(CREATIVES) && CREATIVES.length > 0;
+  if (alreadyPainted){
+    setStatus('ok', 'Refreshing…');
+  } else {
+    setStatus('ok', 'Loading...');
+    showBanner('warn', 'Loading data...');
+    renderSkeleton(8);
+  }
+
+  const range = rangeForPreset(appliedDatePreset);
+  const task = rangeWithin(range, extendedWindowRange())
+    ? loadWithinWindow(myReq, range)
+    : loadOutsideWindow(myReq, range);
+
+  task
     .catch(err => {
       if (myReq !== _reqSeq) return;   // stale failure — ignore
-      setStatus('err', 'Sync failed');
+      setStatus('err', 'Load failed');
       const msg = String(err && err.message || err);
       if (/password|authorized|unauthorized|email|role/i.test(msg)) {
         // Bare 'unauthorized' is the server's wire value, not a message meant
@@ -3039,7 +3190,7 @@ function refresh(forceIndicator){
 
         // SAY THE NUMBERS ARE OLD.
         //
-        // startDashboard() paints loadFromCache() before the live request
+        // startDashboard() paints the stored extended dataset before the live request
         // finishes, so when that request then fails the screen is left showing
         // a PREVIOUS payload — real figures, quietly out of date, with nothing
         // to distinguish them from fresh ones. A spend dashboard silently
@@ -3122,15 +3273,29 @@ async function startDashboard(){
   bindFilters();
   renderSkeleton(8);
 
-  const storedEntry = readCacheEntry();
+  // The extended dataset from a previous visit paints instantly — no request,
+  // no skeleton. If it was stored before the last daily boundary it is still
+  // painted (better a labelled stale view than a spinner) and then refreshed
+  // behind itself.
+  const stored = readExtendedCache();
 
-  if (storedEntry && storedEntry.payload) applyData(storedEntry.payload, true);
-  else setStatus('ok','Loading…');
+  if (stored){
+    EXT = stored;
+    try {
+      applyExtended(true);
+    } catch(e){
+      // Unreadable cache (old format, corrupted) — drop it and load live.
+      EXT = null;
+      try { localStorage.removeItem(extCacheKey()); } catch(e2){}
+    }
+  }
 
-  if (cacheEntryIsCurrent(storedEntry)){
+  if (!EXT) setStatus('ok','Loading…');
+
+  if (EXT && cacheEntryIsCurrent(EXT)){
     // NO REQUEST AT ALL.
     //
-    // This payload was stored after the last 5-7 AM write window, and nothing
+    // This dataset was stored after the last 5-7 AM write window, and nothing
     // else writes to the sheets, so asking the server again would return the
     // same bytes at the cost of one execution. The header still shows the real
     // "Data as of" stamp from the payload itself, so nothing is hidden.
@@ -3150,6 +3315,8 @@ async function startDashboard(){
     _lastSeenBoundary = boundary;
     clearRangeCache();
     clearStoredRanges();
+    EXT = null;
+    _creativesSource = '';
     refresh(false);
   }, 60 * 60 * 1000);
 
