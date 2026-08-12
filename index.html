@@ -25,20 +25,20 @@
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@500;600;700&family=Quicksand:wght@600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --font-body:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
-  --font-display:'Space Grotesk','Inter',system-ui,sans-serif;
-  --font-mono:'JetBrains Mono','SF Mono',Consolas,'Liberation Mono',monospace;
+  --font-body:'Segoe UI',system-ui,-apple-system,Roboto,sans-serif;
+  --font-display:'Segoe UI',system-ui,-apple-system,Roboto,sans-serif;
+  --font-mono:'Poppins','Segoe UI',sans-serif;
   --bg:#08090d;--sur:#0b0c0f;--sur2:#1c1f2e;--bor:rgba(255,255,255,.08);
-  --text:#dde1f5;--mut:#606888;
+  --text:#eef1ff;--mut:#b2b8ce;
   --acc:#4d9fff;--grn:#18c97a;--red:#f05252;--amb:#f5a623;--pur:#9b72f5;--teal:#00e5c3;
 }
 html,body{background:var(--bg);color:var(--text);min-height:100vh}
-body{font-family:var(--font-body);font-size:13px;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-feature-settings:'cv11','ss01'}
-.num,.kpi-v,.mini-v,.mkpi-v{font-family:var(--font-mono);font-feature-settings:'tnum','zero';letter-spacing:-.02em}
+body{font-family:var(--font-body);font-size:13px;-webkit-font-smoothing:auto;-moz-osx-font-smoothing:auto;font-feature-settings:'cv11','ss01'}
+.num,.kpi-v,.mini-v,.mkpi-v{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-feature-settings:'tnum';letter-spacing:0;font-weight:500}
 
 /* ── ICONS ── */
 .icn{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;display:block}
@@ -54,7 +54,7 @@ body{font-family:var(--font-body);font-size:13px;-webkit-font-smoothing:antialia
 .sidebar-close:hover{color:var(--text);background:var(--sur2)}
 .sb-logo{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,#00E5C3 0%,#4D9FFF 100%);display:flex;align-items:center;justify-content:center;color:#001014;flex-shrink:0;box-shadow:0 4px 14px rgba(0,229,195,.28),inset 0 1px 0 rgba(255,255,255,.14)}
 .sb-logo svg{width:18px;height:18px;stroke:#001014;fill:none;stroke-width:2}
-.sb-title{font-family:'Quicksand',sans-serif;font-size:16px;font-weight:700;color:#fff;line-height:1.15}
+.sb-title{font-family:var(--font-body);font-size:16px;font-weight:700;color:#fff;line-height:1.15}
 .sb-sub{font-size:10px;color:var(--mut);margin-top:2px}
 .sb-nav{flex:1;padding:14px 8px;overflow-y:auto}
 .sb-group{font-size:9px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.8px;padding:10px 10px 6px}
@@ -87,6 +87,10 @@ input.inp:focus,select.inp:focus{border-color:var(--acc)}
 .btn:hover{color:var(--text);border-color:var(--acc)}
 .btn-acc{background:rgba(91,110,245,.12);color:var(--acc);border-color:rgba(91,110,245,.3)}
 .btn-acc:hover{background:rgba(91,110,245,.2);box-shadow:0 0 16px rgba(91,110,245,.25)}
+#adminBtn{background:rgba(24,201,122,.14);color:#35dc91;border-color:rgba(24,201,122,.42);font-weight:600}
+#adminBtn:hover{background:var(--grn);color:#04140d;border-color:var(--grn);box-shadow:0 0 14px rgba(24,201,122,.28)}
+#logoutBtn{background:rgba(240,82,82,.14);color:#ff7474;border-color:rgba(240,82,82,.42);font-weight:600}
+#logoutBtn:hover{background:var(--red);color:#fff;border-color:var(--red);box-shadow:0 0 14px rgba(240,82,82,.25)}
 #reloadBtn:disabled{opacity:.7;cursor:wait}
 
 .page-content{flex:1;padding:22px 28px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--bor) transparent}
@@ -103,25 +107,25 @@ input.inp:focus,select.inp:focus{border-color:var(--acc)}
 .kpi:hover{transform:translateY(-1px)}
 .kpi::after{content:'';position:absolute;top:0;left:0;right:0;height:2px}
 .kpi.blue::after{background:var(--acc)}.kpi.green::after{background:var(--grn)}.kpi.amber::after{background:var(--amb)}.kpi.purple::after{background:var(--pur)}.kpi.teal::after{background:var(--teal)}
-.kpi-l{font-size:9px;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px}
-.kpi-v{font-size:22px;font-weight:600;color:var(--text);line-height:1}
+.kpi-l{font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.45px;margin-bottom:8px;font-weight:600}
+.kpi-v{font-size:23px;font-weight:500;color:var(--text);line-height:1.15}
 
 /* ── CHART CARDS ── */
 .g2{display:grid;grid-template-columns:1fr 1.4fr;gap:12px;margin-bottom:14px}
 @media(max-width:900px){.g2{grid-template-columns:1fr}}
 .cc{background:var(--sur);border:0.5px solid var(--bor);border-radius:12px;padding:16px;min-height:270px;display:flex;flex-direction:column}
-.cc-t{font-size:12px;font-weight:600;color:var(--text);margin-bottom:2px}
-.cc-s{font-size:10px;color:var(--mut);margin-bottom:10px}
+.cc-t{font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px}
+.cc-s{font-size:11px;color:var(--mut);margin-bottom:10px}
 .cc-canvas-wrap{flex:1;position:relative;min-height:200px}
 
 /* ── TABS ── */
 .tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;border-bottom:0.5px solid var(--bor);padding-bottom:12px}
-.tab{padding:6px 14px;border-radius:20px;font-size:11px;cursor:pointer;border:0.5px solid var(--bor);color:var(--mut);background:transparent;display:inline-flex;align-items:center;gap:7px;font-weight:500}
-.tab .dot{width:7px;height:7px;border-radius:50%}
+.tab{padding:7px 14px;border-radius:20px;font-size:11px;line-height:1;cursor:pointer;border:0.5px solid var(--bor);color:var(--mut);background:transparent;display:inline-flex;align-items:baseline;gap:8px;font-weight:500}
+.tab .dot{width:7px;height:7px;border-radius:50%;align-self:center;flex:0 0 7px}
 .tab[data-fmt="Video"] .dot{background:var(--pur)}
 .tab[data-fmt="Playable"] .dot{background:var(--teal)}
 .tab[data-fmt="Image"] .dot{background:var(--acc)}
-.tab .cnt{font-family:var(--font-mono);font-size:10px;color:var(--mut)}
+.tab .cnt{font-family:var(--font-mono);font-size:11px;line-height:1;color:var(--mut);display:inline-block;min-width:22px;text-align:right;font-weight:500;font-variant-numeric:tabular-nums}
 .tab.on{background:var(--acc);color:#fff;border-color:var(--acc)}
 .tab.on .cnt{color:#fff}
 
@@ -177,8 +181,8 @@ input.inp:focus,select.inp:focus{border-color:var(--acc)}
 .asset-body{padding:12px 14px 14px}
 .asset-name{font-size:12px;font-weight:600;color:var(--text);line-height:1.35;margin-bottom:10px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:32px}
 .asset-kpis{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;padding-top:10px;border-top:0.5px dashed var(--bor)}
-.mini-l{font-size:9px;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
-.mini-v{font-size:13px;font-weight:600;color:var(--text)}
+.mini-l{font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.45px;margin-bottom:3px;font-weight:600}
+.mini-v{font-size:14px;font-weight:500;color:var(--text)}
 .mini-v.muted{color:var(--mut);font-weight:500}
 
 /* ── skeleton ── */
@@ -211,7 +215,7 @@ input.inp:focus,select.inp:focus{border-color:var(--acc)}
 .modal-badges{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
 .modal-section h3{font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.7px;font-weight:700;margin-bottom:10px}
 .mkpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-.mkpi-v{font-size:16px;font-weight:600;color:var(--text)}
+.mkpi-v{font-size:17px;font-weight:500;color:var(--text)}
 .pill{display:inline-block;font-family:var(--font-mono);font-size:10px;padding:3px 9px;background:var(--sur2);color:var(--text);border-radius:5px}
 .modal-info p{font-size:11px;color:var(--mut);line-height:1.6}
 
@@ -247,17 +251,19 @@ input.inp:focus,select.inp:focus{border-color:var(--acc)}
  * VALIA PAGE  (added — nothing above this comment was modified)
  * ══════════════════════════════════════════════════════════════════════ */
 .valia-head{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:16px}
+#valiaPage,.vmodal{font-family:var(--font-body);color:var(--text)}
+#valiaPage .inp,#valiaPage .btn,.vmodal .btn{font-family:var(--font-body)}
 .valia-stats{display:flex;gap:8px;flex-wrap:wrap}
 .vstat{background:var(--sur);border:0.5px solid var(--bor);border-radius:8px;padding:8px 14px;min-width:96px}
-.vstat-l{font-size:9px;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
-.vstat-v{font-family:var(--font-mono);font-size:17px;font-weight:600;line-height:1}
+.vstat-l{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;font-weight:600}
+.vstat-v{font-family:var(--font-mono);font-size:18px;font-weight:500;line-height:1.15}
 .vstat.done .vstat-v{color:var(--grn)}
 .vstat.part .vstat-v{color:var(--amb)}
 .vstat.none .vstat-v{color:var(--mut)}
 .valia-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 
-.valia-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:16px;align-items:start}
-.vcard{background:var(--sur);border:0.5px solid var(--bor);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;transition:border-color .2s ease,transform .15s ease;cursor:pointer}
+.valia-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:16px;align-items:stretch}
+.vcard{background:var(--sur);border:0.5px solid var(--bor);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;height:100%;transition:border-color .2s ease,transform .15s ease;cursor:pointer}
 .vcard:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
 .vcard:hover{border-color:rgba(0,229,195,.4);transform:translateY(-2px)}
 .vcard-thumb{position:relative;display:block;aspect-ratio:16/9;background:#000;overflow:hidden;text-decoration:none}
@@ -267,19 +273,19 @@ input.inp:focus,select.inp:focus{border-color:var(--acc)}
 .vcard-thumb:hover .vcard-play{opacity:1}
 .vcard-play svg{width:48px;height:48px;filter:drop-shadow(0 3px 12px rgba(0,0,0,.7))}
 .vcard-thumb:focus-visible{outline:2px solid var(--teal);outline-offset:-2px}
-.vcard-id{position:absolute;left:9px;bottom:9px;font-family:var(--font-mono);font-size:10px;color:#fff;background:rgba(0,0,0,.7);padding:3px 8px;border-radius:5px;letter-spacing:.02em}
-.vcard-prog{position:absolute;right:9px;top:9px;font-family:var(--font-mono);font-size:10px;padding:3px 9px;border-radius:20px;background:rgba(0,0,0,.7)}
+.vcard-id{position:absolute;left:9px;bottom:9px;font-family:var(--font-mono);font-size:11px;font-weight:500;color:#fff;background:rgba(0,0,0,.7);padding:3px 8px;border-radius:5px;letter-spacing:0}
+.vcard-prog{position:absolute;right:9px;top:9px;font-family:var(--font-mono);font-size:11px;font-weight:500;padding:3px 9px;border-radius:20px;background:rgba(0,0,0,.7)}
 .vcard-prog.full{color:var(--grn);border:0.5px solid rgba(24,201,122,.45)}
 .vcard-prog.part{color:var(--amb);border:0.5px solid rgba(245,166,35,.45)}
 .vcard-prog.zero{color:var(--mut);border:0.5px solid var(--bor)}
-.vcard-url{padding:10px 14px;border-bottom:0.5px solid var(--bor);font-family:var(--font-mono);font-size:10px;word-break:break-all;line-height:1.5;color:var(--acc)}
+.vcard-url{padding:10px 14px;border-bottom:0.5px solid var(--bor);font-family:var(--font-body);font-size:11px;word-break:break-all;line-height:1.5;color:var(--acc)}
 .vcard-url a{color:var(--acc);text-decoration:none}
 .vcard-url a:hover{text-decoration:underline}
 .vcard-body{padding:2px 14px 14px}
 
 .vsec{padding-top:13px}
 .vsec-h{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px;padding-bottom:6px;border-bottom:1px solid var(--bor)}
-.vsec-name{font-family:var(--font-display);font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.vsec-name{font-family:var(--font-body);font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;display:flex;align-items:center;gap:8px}
 .vsec-name::before{content:'';width:3px;height:13px;border-radius:2px;background:currentColor}
 .vsec.c0 .vsec-name{color:var(--acc)}
 .vsec.c1 .vsec-name{color:var(--teal)}
@@ -287,13 +293,13 @@ input.inp:focus,select.inp:focus{border-color:var(--acc)}
 .vsec.c3 .vsec-name{color:var(--amb)}
 .vsec.c4 .vsec-name{color:var(--grn)}
 .vsec.c5 .vsec-name{color:var(--red)}
-.vsec-badge{font-family:var(--font-mono);font-size:9px;color:var(--mut);background:var(--sur2);padding:2px 8px;border-radius:20px;white-space:nowrap}
+.vsec-badge{font-family:var(--font-mono);font-size:10px;font-weight:500;color:var(--mut);background:var(--sur2);padding:2px 8px;border-radius:20px;white-space:nowrap}
 .vsec.is-empty .vsec-badge{color:var(--amb)}
 .vfacts{display:grid;grid-template-columns:1fr;gap:1px;background:var(--bor);border-radius:8px;overflow:hidden}
 .vfact{display:grid;grid-template-columns:106px 1fr;gap:10px;background:var(--sur);padding:7px 11px;align-items:start}
-.vfact dt{font-size:9px;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;padding-top:2px;line-height:1.4}
-.vfact dd{font-size:11.5px;color:var(--text);line-height:1.45}
-.vfact dd.none{color:#3a3f52;font-style:italic}
+.vfact dt{font-size:10px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.45px;padding-top:2px;line-height:1.4}
+.vfact dd{font-size:12.5px;color:var(--text);line-height:1.5}
+.vfact dd.none{color:var(--mut);font-style:italic}
 
 .vempty{text-align:center;padding:64px 20px;color:var(--mut)}
 .vempty h3{font-family:var(--font-display);font-size:15px;color:var(--text);margin-bottom:7px}
@@ -310,18 +316,18 @@ input.inp:focus,select.inp:focus{border-color:var(--acc)}
 .vmodal-player{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;background:#000}
 .vmodal-player iframe{width:100%;height:100%;border:0;display:block}
 .vmodal-meta{background:var(--sur);border-top:0.5px solid var(--bor);padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.vmodal-meta .vm-url{flex:1;min-width:0;font-family:var(--font-mono);font-size:10.5px;color:var(--acc);word-break:break-all;text-decoration:none}
+.vmodal-meta .vm-url{flex:1;min-width:0;font-family:var(--font-body);font-size:11.5px;color:var(--acc);word-break:break-all;text-decoration:none}
 .vmodal-meta .vm-url:hover{text-decoration:underline}
 .vmodal-right{padding:22px 24px;overflow-y:auto;display:flex;flex-direction:column;gap:18px;scrollbar-width:thin;scrollbar-color:var(--bor) transparent}
 .vmodal-right::-webkit-scrollbar{width:9px}
 .vmodal-right::-webkit-scrollbar-thumb{background:var(--bor);border-radius:9px;border:2px solid var(--sur)}
 .vmodal-hd{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
-.vmodal-t{font-family:var(--font-display);font-size:16px;font-weight:600;color:var(--text);letter-spacing:-.01em}
-.vmodal-sub{font-family:var(--font-mono);font-size:10.5px;color:var(--mut);margin-top:4px}
+.vmodal-t{font-family:var(--font-body);font-size:17px;font-weight:600;color:var(--text);letter-spacing:-.01em}
+.vmodal-sub{font-family:var(--font-body);font-size:11.5px;font-weight:500;color:var(--mut);margin-top:4px}
 .vmodal-close{background:var(--sur2);border:0.5px solid var(--bor);color:var(--text);width:32px;height:32px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
 .vmodal-close:hover{border-color:var(--red);color:var(--red)}
 .vmsec-h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:11px;padding-bottom:8px;border-bottom:1.5px solid var(--bor)}
-.vmsec-name{font-family:var(--font-display);font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;display:flex;align-items:center;gap:9px}
+.vmsec-name{font-family:var(--font-body);font-size:14px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;display:flex;align-items:center;gap:9px}
 .vmsec-name::before{content:'';width:4px;height:15px;border-radius:2px;background:currentColor}
 .vmsec.c0 .vmsec-name,.vmsec.c0 .vmsec-h{color:var(--acc)}
 .vmsec.c1 .vmsec-name,.vmsec.c1 .vmsec-h{color:var(--teal)}
@@ -331,9 +337,9 @@ input.inp:focus,select.inp:focus{border-color:var(--acc)}
 .vmsec.c1 .vmsec-h{border-bottom-color:rgba(0,229,195,.35)}
 .vmfacts{display:grid;grid-template-columns:1fr;gap:1px;background:var(--bor);border-radius:9px;overflow:hidden}
 .vmfact{display:grid;grid-template-columns:124px 1fr;gap:12px;background:var(--sur);padding:10px 13px;align-items:start}
-.vmfact dt{font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.6px;padding-top:2px;line-height:1.4}
-.vmfact dd{font-size:13px;color:var(--text);line-height:1.5}
-.vmfact dd.none{color:#3a3f52;font-style:italic}
+.vmfact dt{font-size:11px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;padding-top:2px;line-height:1.4}
+.vmfact dd{font-size:14px;color:var(--text);line-height:1.55}
+.vmfact dd.none{color:var(--mut);font-style:italic}
 
 /* ---- Google Sign-In + admin panel ------------------------------------- */
 .gsi-wrap{display:flex;justify-content:center;padding:6px 0 2px;min-height:44px}
@@ -467,19 +473,30 @@ input.inp:focus,select.inp:focus{border-color:var(--acc)}
              The numeric value IS the span — rangeForPreset() reads it with
              parseInt, so adding another window here needs no JS change.
 
-             All of these are served locally: the 92-day extended window
-             (CONFIG.EXTENDED_DAYS) is loaded in the background after first
-             paint, and 90 <= 92, so switching between them costs no request.
-             Only a Custom range reaching further back asks the server. Those
-             rows go back KEEP_DAYS (120, in archiveOldRows in code.gs);
-             anything older has been moved to the archive spreadsheet named in
-             ARCHIVE_SPREADSHEET_ID and is no longer in the tab this reads. -->
+             A page load fetches ONE window — the last CONFIG.EXTENDED_DAYS
+             (62) — and every preset here fits inside it, so switching between
+             them costs NO request. That is the reason the widest option is 60
+             and not 90: 60 <= 62.
+
+             DO NOT ADD A PRESET WIDER THAN CONFIG.EXTENDED_DAYS. It would go
+             to the server on every use (uncached, since the warmer only keeps
+             the 45- and 62-day windows warm), and worse, a fresh-but-narrower
+             cached dataset would paint UNDER its heading and under-report every
+             total with no error shown. Raise EXTENDED_DAYS first if you need a
+             wider preset — and remember what that costs: the old 90-day window
+             was 2.71 MB, i.e. 18 seconds on a slow connection, on every load.
+
+             Custom range is the one way past the window, and it is explicit:
+             it always asks the server. Rows go back KEEP_DAYS (120, in
+             archiveOldRows in code.gs); anything older has been moved to the
+             archive spreadsheet named in ARCHIVE_SPREADSHEET_ID and is no
+             longer in the tab this reads. -->
         <select id="dateRange" class="inp">
+          <option value="60">Last 60 days</option>
           <option value="45" selected>Last 45 days</option>
           <option value="30">Last 30 days</option>
           <option value="14">Last 14 days</option>
           <option value="7">Last 7 days</option>
-          <option value="90">Last 90 days</option>
           <option value="single">Single date</option>
           <option value="custom">Custom range</option>
         </select>
@@ -624,12 +641,22 @@ const CONFIG = {
   // of the fast first-stage load. Matches CONFIG.MAX_RESPONSE_DAYS in code.gs.
   DEFAULT_VIEW_DAYS: 45,
 
-  // Days loaded in the background after the first paint. Every date filter
-  // inside this window is answered locally with ZERO requests. 92 = a 90-day
-  // reach plus 2 days of slack so "Last 90 days" (which ends yesterday) still
-  // fits. MUST equal CONFIG.CACHE_WINDOW_DAYS in code.gs, or the background
-  // request misses the server's warmed cache entry.
-  EXTENDED_DAYS: 92,
+  // The window a page load actually fetches — ONE request, not two. Every date
+  // filter inside it is answered locally with ZERO requests; anything wider
+  // goes to the server through fetchRange().
+  //
+  // 62, LOWERED FROM 92. Measured 2026-08-06 against the deployed build: the
+  // 92-day response was 2.71 MB and took 18 SECONDS to arrive on a ~200 Kbps
+  // connection, with the server itself finishing in 1.5 s — the rest was pure
+  // transfer. The response already carries Content-Encoding: gzip, so there is
+  // no compression left to win and the only lever is sending fewer bytes.
+  //
+  // 62 covers every preset here except "Last 90 days", which now costs one
+  // server request instead of being instant. That is the deliberate trade.
+  //
+  // MUST equal CONFIG.CACHE_WINDOW_DAYS in code.gs, or this request misses the
+  // server's warmed cache entry and pays a full rebuild on top of the transfer.
+  EXTENDED_DAYS: 62,
   // The API reads the pre-aggregated applovin_data and google_ads_data tabs,
   // so a slow response almost always means a network/deployment problem.
   // Keep this modest and retry once instead of one long hung wait.
@@ -672,7 +699,7 @@ const CONFIG = {
 const FORMATS = ['Video','Playable','Image'];
 // Resolves beside index.html locally and inside a GitHub Pages repository path.
 const PLAYABLE_THUMB_IMG = new URL('./Thumbnail.png', document.baseURI).href;
-const COLOR = { Video:'#9b72f5', Playable:'#00e5c3', Image:'#4d9fff', accent:'#4d9fff', ink3:'#606888', hairline:'rgba(255,255,255,.08)' };
+const COLOR = { Video:'#9b72f5', Playable:'#00e5c3', Image:'#4d9fff', accent:'#4d9fff', ink3:'#b2b8ce', hairline:'rgba(255,255,255,.08)' };
 
 let CREATIVES = [];     // processed, deduped, attributed per-asset daily records
 let META = { game:'', appLovinRefreshedAt:'', googleRefreshedAt:'', currencyCode:'USD', accountTimeZone:'' };
@@ -684,8 +711,8 @@ let appliedSingleDate = '';
 let _isFetching = false;
 let _reqSeq = 0;
 
-// The extended dataset: the last CONFIG.EXTENDED_DAYS of both sheets, loaded
-// in the background after the first paint and persisted to localStorage.
+// The extended dataset: the last CONFIG.EXTENDED_DAYS of both sheets. This is
+// the ONLY window a page load fetches, and it is persisted to localStorage.
 // While a requested range fits inside it, date changes never touch the server.
 //   { cachedAt, startDate, endDate, raw:{applovin,google}, payload? }
 let EXT = null;
@@ -831,6 +858,27 @@ async function readApiJson(res, label){
 const IDEMPOTENT_ACTIONS = ['sync.status', 'sync.start', 'admin.list', 'logout', 'google_login'];
 const API_POST_BACKOFF_MS = [4000, 9000];
 
+// A STALLED REQUEST MUST NOT BE ABLE TO OUTLIVE THE USER'S PATIENCE.
+//
+// requestSheets has always aborted on FETCH_TIMEOUT_MS. apiPost had no ceiling
+// at all — no AbortController, no signal — so when the echo hop swallowed a
+// reply instead of returning 404, the fetch simply never settled. It then sat
+// on Chrome's own network timeout, around FIVE MINUTES, and the retry below
+// could not help because a retry only runs once an attempt finishes. That is
+// the "Checking access…" hang: not a slow server, a request with no deadline.
+//
+// WHY 20s IS SAFE FOR EVERY ACTION HERE. Nothing routed through apiPost is
+// long-running. Login measured ~2s server-side; sync.start only schedules a
+// one-shot trigger and returns in milliseconds (the sync itself runs in its
+// own execution and is polled for); admin.list and logout are single sheet
+// operations. 20s is generous for all of them on a slow connection while
+// still being far below the point where waiting has stopped being useful.
+//
+// This is deliberately NOT FETCH_TIMEOUT_MS. That budget is long because a
+// data payload is megabytes and genuinely takes time to arrive; these
+// responses are a few hundred bytes, so a slow one is a broken one.
+const API_POST_TIMEOUT_MS = 20000;
+
 async function apiPost(payload, attempt){
   const tryNumber = attempt || 0;
   const action = String((payload && payload.action) || '');
@@ -839,32 +887,64 @@ async function apiPost(payload, attempt){
   const wait = (ms) => new Promise(done =>
     setTimeout(done, Math.round(ms * (0.75 + Math.random() * 0.5))));
 
-  const res = await fetch(CONFIG.API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    cache: 'no-store',
-    body: JSON.stringify(payload)
-  });
-
-  // Lost in transit, outcome unknown -> only repeat what is safe to repeat.
-  if (
-    (res.status === 404 || res.status === 429 || res.status >= 500) &&
-    canRepeat &&
-    tryNumber < API_POST_BACKOFF_MS.length
-  ){
+  const canRetry = () => canRepeat && tryNumber < API_POST_BACKOFF_MS.length;
+  const again = async () => {
     await wait(API_POST_BACKOFF_MS[tryNumber]);
     return apiPost(payload, tryNumber + 1);
+  };
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), API_POST_TIMEOUT_MS);
+
+  let data;
+
+  try {
+    const res = await fetch(CONFIG.API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      cache: 'no-store',
+      signal: controller.signal,
+      body: JSON.stringify(payload)
+    });
+
+    // Lost in transit, outcome unknown -> only repeat what is safe to repeat.
+    if (
+      (res.status === 404 || res.status === 429 || res.status >= 500) &&
+      canRetry()
+    ){
+      clearTimeout(timer);
+      return again();
+    }
+
+    // The timer stays armed across this read on purpose: the body is part of
+    // the response, and a reply that never finishes arriving is just as stuck
+    // as one that never starts.
+    data = await readApiJson(res, 'API');
+  } catch (err){
+    clearTimeout(timer);
+
+    // An abort leaves the outcome UNKNOWN in exactly the way a 404 from the
+    // echo hop does — the server may well have run and only the reply been
+    // lost — so the same rule applies: repeat only what is safe to repeat.
+    // readApiJson throws for transport shapes too (bad status, an HTML error
+    // page, unparseable body); business failures come back as data.error
+    // below and are never retried here.
+    if (canRetry()) return again();
+
+    throw (err && err.name === 'AbortError')
+      ? new Error('The server did not respond within ' +
+                  Math.round(API_POST_TIMEOUT_MS / 1000) + 's. Please try again.')
+      : err;
   }
 
-  const data = await readApiJson(res, 'API');
+  clearTimeout(timer);
 
-  // Provably never executed -> always safe to repeat.
+  // Provably never executed -> always safe to repeat, idempotent or not.
   if (
     data && data.code === 'get_not_supported' &&
     tryNumber < API_POST_BACKOFF_MS.length
   ){
-    await wait(API_POST_BACKOFF_MS[tryNumber]);
-    return apiPost(payload, tryNumber + 1);
+    return again();
   }
 
   if (data && data.error === 'unauthorized'){
@@ -1866,11 +1946,11 @@ function rollingRange(days){
   return { startDate: ymd(start), endDate: ymd(today) };
 }
 
-/* The window the server treats as its default, used to decide whether the
-   fast first-stage load can cover the current view. */
-function defaultWindowRange(){
-  return rollingRange(CONFIG.DEFAULT_VIEW_DAYS);
-}
+/* NOTE: defaultWindowRange() is gone. It existed only to decide whether the
+   old two-stage load's first stage could cover the current view; with a single
+   request there is no such decision left to make. The server still applies
+   CONFIG.MAX_RESPONSE_DAYS to a dateless request — see loadWithinWindow's
+   fallback, which is the one caller that still asks for it. */
 
 function rangeForPreset(value){
   if (value === 'single'){
@@ -2003,8 +2083,7 @@ function updateLabels(){
   // meaningless without the window it covers.
   document.getElementById('pageSub').textContent =
     (META.game ? META.game + ' · ' : '') + presetLabel(appliedDatePreset) +
-    ' · ' + rangeLabel(range) +
-    dataFreshnessSuffix();
+    ' · ' + rangeLabel(range);
   document.getElementById('sbRefreshed').textContent = 'AppLovin: ' + (META.appLovinRefreshedAt || '—') + ' · Google Ads: ' + (META.googleRefreshedAt || '—');
 }
 
@@ -2106,7 +2185,7 @@ function renderKpis(rows){
 
 function renderCharts(rows){
   if (!window.Chart) return;
-  Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
+  Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
   Chart.defaults.font.size = 11;
   Chart.defaults.color = COLOR.ink3;
 
@@ -2118,18 +2197,78 @@ function renderCharts(rows){
 
   const labels = Object.keys(buckets).filter(k => buckets[k] > 0);
   const data = labels.map(k => buckets[k]);
+  const formatPercentLabels = {
+    id:'formatPercentLabels',
+    afterDatasetsDraw(chart){
+      const values = chart.data.datasets[0].data;
+      const total = values.reduce((sum,value)=>sum + Number(value || 0),0) || 1;
+      const ctx = chart.ctx;
+      ctx.save();
+      ctx.font = "600 11px 'Poppins', 'Segoe UI', sans-serif";
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      chart.getDatasetMeta(0).data.forEach((arc,index)=>{
+        const percentage = (Number(values[index] || 0) / total) * 100;
+        if (percentage < 4) return;
+        const point = arc.tooltipPosition();
+        const label = percentage.toFixed(1) + '%';
+        const width = ctx.measureText(label).width + 12;
+        ctx.fillStyle = 'rgba(8,9,13,.78)';
+        ctx.beginPath();
+        ctx.roundRect(point.x - width / 2, point.y - 10, width, 20, 6);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(label, point.x, point.y + .5);
+      });
+      ctx.restore();
+    }
+  };
+  const formatAlignedLegend = {
+    id:'formatAlignedLegend',
+    afterDraw(chart){
+      const ctx = chart.ctx;
+      const values = chart.data.datasets[0].data;
+      const total = values.reduce((sum,value)=>sum + Number(value || 0),0) || 1;
+      const startX = chart.chartArea.right + 30;
+      const nameX = startX + 17;
+      const countX = startX + 125;
+      const shareX = startX + 205;
+      const rowHeight = 31;
+      const startY = chart.height / 2 - ((values.length - 1) * rowHeight) / 2;
+      ctx.save();
+      ctx.textBaseline = 'middle';
+      chart.data.labels.forEach((label,index)=>{
+        const y = startY + index * rowHeight;
+        ctx.fillStyle = chart.data.datasets[0].backgroundColor[index];
+        ctx.beginPath();
+        ctx.arc(startX + 5, y, 5.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.font = "600 12px 'Segoe UI', system-ui, sans-serif";
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#eef1ff';
+        ctx.fillText(label, nameX, y);
+        ctx.font = "500 11px 'Poppins', 'Segoe UI', sans-serif";
+        ctx.textAlign = 'right';
+        ctx.fillText(Number(values[index]).toLocaleString(), countX, y);
+        ctx.fillStyle = '#b2b8ce';
+        ctx.fillText(((Number(values[index]) / total) * 100).toFixed(1) + '%', shareX, y);
+      });
+      ctx.restore();
+    }
+  };
   if (chartFormat) chartFormat.destroy();
   chartFormat = new Chart(document.getElementById('chart-format').getContext('2d'), {
     type:'doughnut',
     data:{ labels, datasets:[{ data, backgroundColor:labels.map(l=>COLOR[l]), borderColor:'#0b0c0f', borderWidth:2, hoverOffset:8 }] },
-    options:{ responsive:true, maintainAspectRatio:false, cutout:'62%', animation:{duration:200},
-      plugins:{ legend:{ position:'bottom', labels:{ boxWidth:9, boxHeight:9, padding:12, color:'#dde1f5',
+    plugins:[formatPercentLabels,formatAlignedLegend],
+    options:{ responsive:true, maintainAspectRatio:false, cutout:'62%', animation:{duration:200}, layout:{padding:{right:235}},
+      plugins:{ legend:{ display:false, position:'right', align:'center', labels:{ usePointStyle:true, pointStyle:'circle', boxWidth:9, boxHeight:9, padding:18, color:'#eef1ff', font:{ family:"'Segoe UI', system-ui, sans-serif", size:12, weight:'500' },
         generateLabels:(chart)=>{ const ds=chart.data.datasets[0]; const total=ds.data.reduce((s,n)=>s+n,0)||1;
           return chart.data.labels.map((label,i)=>({
             text: label + '  ' + ds.data[i] + ' creatives · ' + ((ds.data[i]/total)*100).toFixed(1) + '%',
             fillStyle: ds.backgroundColor[i],
             strokeStyle: '#0b0c0f',
-            fontColor: '#dde1f5',
+            fontColor: '#eef1ff',
             lineWidth: 1,
             index: i
           }));
@@ -2151,13 +2290,62 @@ function renderCharts(rows){
   });
 
   const top = rows.slice().sort((a,b)=>b.spend-a.spend).slice(0,10);
+  const leaderboardValueLabels = {
+    id:'leaderboardValueLabels',
+    afterDatasetsDraw(chart){
+      const ctx = chart.ctx;
+      const values = chart.data.datasets[0].data;
+      ctx.save();
+      ctx.font = "500 11px 'Poppins', 'Segoe UI', sans-serif";
+      ctx.textBaseline = 'middle';
+      chart.getDatasetMeta(0).data.forEach((bar,index)=>{
+        const label = '$' + shortNum(Number(values[index] || 0));
+        const labelWidth = ctx.measureText(label).width;
+        const preferredX = bar.x + 7;
+        const fitsAfterBar = preferredX + labelWidth <= chart.chartArea.right;
+        ctx.textAlign = fitsAfterBar ? 'left' : 'right';
+        ctx.fillStyle = fitsAfterBar ? '#eef1ff' : '#ffffff';
+        ctx.fillText(label, fitsAfterBar ? preferredX : bar.x - 7, bar.y);
+      });
+      ctx.restore();
+    }
+  };
   if (chartTop10) chartTop10.destroy();
+  const leaderboardColors = [
+    '#f4c95d', '#b8c2d6', '#cd8b62',
+    '#45a3ff', '#4d91f0', '#617fe4', '#776fda', '#8c62cf', '#a255c0', '#b84cac'
+  ];
+  const leaderboardRankLabels = {
+    id:'leaderboardRankLabels',
+    afterDatasetsDraw(chart){
+      const ctx = chart.ctx;
+      const bars = chart.getDatasetMeta(0).data;
+      const rankX = chart.chartArea.left - 150;
+      const nameX = chart.chartArea.left - 126;
+      ctx.save();
+      ctx.textBaseline = 'middle';
+      bars.forEach((bar,index)=>{
+        ctx.font = "600 11px 'Poppins', 'Segoe UI', sans-serif";
+        ctx.textAlign = 'right';
+        ctx.fillStyle = leaderboardColors[index];
+        ctx.fillText(String(index + 1), rankX + 17, bar.y);
+        ctx.font = "500 11px 'Segoe UI', system-ui, sans-serif";
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#eef1ff';
+        ctx.fillText(truncate(top[index].name || top[index].id,20), nameX, bar.y);
+      });
+      ctx.restore();
+    }
+  };
   chartTop10 = new Chart(document.getElementById('chart-top10').getContext('2d'), {
     type:'bar',
-    data:{ labels: top.map(r=>truncate(r.name||r.id,24)), datasets:[{ data: top.map(r=>r.spend), backgroundColor: top.map(r=>COLOR[r.format]||COLOR.ink3), borderRadius:3 }] },
-    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, animation:{duration:200},
+    data:{ labels: top.map(r=>r.name||r.id), datasets:[{ data: top.map(r=>r.spend), backgroundColor: top.map((r,index)=>leaderboardColors[index]), borderColor:top.map((r,index)=>leaderboardColors[index]), borderWidth:1, borderRadius:4, borderSkipped:false }] },
+    plugins:[leaderboardValueLabels,leaderboardRankLabels],
+    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, animation:{duration:200}, layout:{padding:{left:165,right:42}},
+      onHover:(event,elements)=>{ if(event.native && event.native.target) event.native.target.style.cursor=elements.length?'pointer':'default'; },
+      onClick:(event,elements)=>{ if(elements.length && top[elements[0].index]) openModal(top[elements[0].index]); },
       plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'#1c1f2e', titleColor:'#dde1f5', bodyColor:'#dde1f5', padding:9, displayColors:false, callbacks:{ label:(item)=>'$'+Math.round(item.parsed.x).toLocaleString() } } },
-      scales:{ x:{ grid:{color:COLOR.hairline}, ticks:{ color:COLOR.ink3, callback:(v)=>'$'+shortNum(v) } }, y:{ grid:{display:false}, ticks:{ color:'#dde1f5', autoSkip:false } } } }
+      scales:{ x:{ grid:{color:COLOR.hairline}, ticks:{ color:COLOR.ink3, callback:(v)=>'$'+shortNum(v) } }, y:{ grid:{display:false}, ticks:{ display:false } } } }
   });
 }
 
@@ -2329,8 +2517,8 @@ function renderGrid(rows){
   _gridDrawn = 0;
 
   if (!rows.length){
-    // Don't flash "No match" while a fetch is still in flight (the two-stage
-    // date fetch can briefly have zero rows before the full payload lands).
+    // Don't flash "No match" while a fetch is still in flight — a range that
+    // falls outside the loaded window has zero rows until its payload lands.
     if (_isFetching){ renderSkeleton(8); return; }
     el.innerHTML = '<div class="empty"><h3>No '+(activeFormat==='all'?'creatives':activeFormat.toLowerCase()+'s')+' match</h3><p>Try a wider date range or different filters.</p></div>';
     return;
@@ -2546,7 +2734,7 @@ function previewHtml(r){
   const safeUrl = escapeHtml(url);
 
   if (!url) {
-    return '<div style="color:#666;text-align:center;padding:20px">' +
+    return '<div style="color:var(--mut);text-align:center;padding:20px">' +
       'No preview URL found for this asset in ' +
       (r.network === 'Google Ads' ? 'google_ads_data.' : 'applovin_data.') +
     '</div>';
@@ -2847,21 +3035,11 @@ function applyExtended(fromCache){
   applyData(EXT.payload, fromCache, 'ext');
 }
 
-/* Swaps the extended dataset in WITHOUT a repaint — used when the visible
- * window is already fully covered by what is on screen, so re-rendering would
- * rebuild an identical grid. Later render() calls see the wider data. */
-function swapInExtended(){
-  if (!EXT) return;
-  if (!EXT.payload) EXT.payload = buildPayload(EXT.raw);
-  const payload = EXT.payload;
-  META = { game: payload.game, appLovinRefreshedAt: payload.appLovinRefreshedAt,
-    googleRefreshedAt: payload.googleRefreshedAt, currencyCode: payload.currencyCode || 'USD',
-    accountTimeZone: payload.accountTimeZone || '' };
-  CREATIVES = (payload.appLovinCreatives || []).concat(payload.googleCreatives || []);
-  invalidateAggregateCache();
-  _creativesSource = 'ext';
-  updateLabels();
-}
+/* NOTE: swapInExtended() is gone. It updated the data WITHOUT repainting, and
+ * was only safe because the old stage 1 had just painted rows identical to the
+ * ones being swapped in. With a single request nothing pre-paints those rows,
+ * so skipping the render would leave stale numbers on screen. applyExtended()
+ * is now the only way the extended dataset reaches the page. */
 
 function applyData(payload, fromCache, source){
   unlockDashboard();
@@ -3077,28 +3255,32 @@ async function resumeSyncIfRunning(){
 }
 
 /* ---------------------------------------------------------------------------
- * THE STAGED LOAD
+ * THE WINDOW LOAD — ONE REQUEST
  *
- * Stage 1 fetches the default 45-day window — the smallest payload, kept warm
- * server-side — and paints it, so the dashboard is usable fast. Stage 2 then
- * fetches the extended window (CONFIG.EXTENDED_DAYS, also warm) in the
- * background and swaps it in, after which every date filter inside it is
- * local. The stages run sequentially on purpose: Apps Script executes one
- * request at a time per user, so firing both at once would just queue stage 1
- * behind stage 2 and delay the first paint.
+ * WHAT THIS REPLACED. This used to be a two-stage load: fetch the default
+ * 45-day window, paint it, then fetch the extended window in the background
+ * and swap it in. The extended window is a SUPERSET of the default one, so
+ * that first response was downloaded, painted, and then thrown away seconds
+ * later by data that already contained every row of it.
+ *
+ * WHY THAT WAS WRONG HERE. Measured 2026-08-06 against the deployed build:
+ *
+ *     server execution     1.5 s   (warm cache — never the bottleneck)
+ *     45-day window        2.13 MB
+ *     62-day window        2.71 MB (was 92 days)
+ *     observed transfer     ~18 s per window at ~200 Kbps
+ *
+ * Apps Script runs ONE execution at a time per user, so the two requests could
+ * never overlap — the second always waited for the first. Staging therefore
+ * bought a first paint a few seconds sooner in exchange for roughly DOUBLING
+ * the bytes and the total time to a usable dashboard. On a fast link that
+ * trade is near neutral; on a slow one it is what turned a 20-second load into
+ * a 90-second one. It is never clearly positive, so there is now one request.
+ *
+ * The default window has not gone away — it is the FALLBACK below, paid for
+ * only when the wider request actually fails.
  * ------------------------------------------------------------------------- */
-async function loadWithinWindow(myReq, viewRange){
-  const coveredByDefault = rangeWithin(viewRange, defaultWindowRange());
-
-  // Stage 1 — skipped when the current view needs days beyond the default
-  // window (e.g. a single date seven weeks back): painting a window that
-  // cannot contain the view would flash a wrong "no creatives match".
-  if (coveredByDefault){
-    const first = await fetchWindow({});
-    if (myReq === _reqSeq) applyData(first.payload, false, 'range');
-  }
-
-  // Stage 2 — the extended window, loaded in the background.
+async function loadWithinWindow(myReq){
   try {
     const extended = await fetchWindow({ days: CONFIG.EXTENDED_DAYS });
     const win = extendedWindowRange();
@@ -3112,11 +3294,16 @@ async function loadWithinWindow(myReq, viewRange){
     saveExtendedCache(EXT);
   } catch (err){
     if (String(err && err.message || err) === 'unauthorized') throw err;
-    // Stage 1 already painted a correct 45-day view; losing only the older
-    // days is not worth an error screen. Ranges beyond 45 days will fall back
-    // to per-range fetches until the next successful extended load.
-    if (!coveredByDefault || myReq !== _reqSeq) throw err;
-    console.warn('Extended-window load failed (45-day view is live):', err);
+    if (myReq !== _reqSeq) throw err;
+
+    // Fall back to the smaller default window rather than showing an error
+    // screen — the same safety net the old stage 1 provided, except it now
+    // costs a request only when something has actually gone wrong. Ranges
+    // wider than the default fall back to per-range fetches until the next
+    // successful load.
+    console.warn('Extended-window load failed — falling back to the default window:', err);
+    const fallback = await fetchWindow({});
+    if (myReq === _reqSeq) applyData(fallback.payload, false, 'range');
     return;
   }
 
@@ -3125,13 +3312,11 @@ async function loadWithinWindow(myReq, viewRange){
   const current = rangeForPreset(appliedDatePreset);
   if (!rangeWithin(current, EXT)) return;   // user moved out of window meanwhile
 
-  if (coveredByDefault && _creativesSource === 'range'){
-    // The visible rows are identical in both datasets — swap the data in
-    // without rebuilding the grid the user is already looking at.
-    swapInExtended();
-  } else {
-    applyExtended(false);
-  }
+  // Always a real paint. Nothing has pre-painted these rows now that stage 1
+  // is gone, and what IS on screen may be a stale localStorage entry from a
+  // previous day — swapping the data in without rendering would leave the old
+  // numbers visible.
+  applyExtended(false);
 }
 
 function loadOutsideWindow(myReq, range){
@@ -3163,7 +3348,7 @@ function refresh(forceIndicator){
 
   const range = rangeForPreset(appliedDatePreset);
   const task = rangeWithin(range, extendedWindowRange())
-    ? loadWithinWindow(myReq, range)
+    ? loadWithinWindow(myReq)
     : loadOutsideWindow(myReq, range);
 
   task
